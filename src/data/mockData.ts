@@ -1,4 +1,4 @@
-import type { Epic, ClarifyingQuestion, INVESTValidation, Story } from '../types'
+import type { Epic, ClarifyingQuestion, INVESTValidation, Story, FixProposal } from '../types'
 
 export const MOCK_CLARIFYING_QUESTIONS: ClarifyingQuestion[] = [
   {
@@ -278,5 +278,120 @@ export const MOCK_INVEST_VALIDATION: INVESTValidation = {
     score: 88,
     feedback: 'Most acceptance criteria are measurable, though the 300ms response time criterion needs a defined measurement point.',
     suggestions: ['Clarify whether 300ms is measured client-side (render) or server-side (API response) — they require different test approaches'],
+  },
+}
+
+export const MOCK_INVEST_FIXES: Record<string, FixProposal> = {
+  independent: {
+    principleKey: 'independent',
+    summary: 'Remove the auto-suggest dependency by scoping it out of this story. Auto-suggest will be delivered as a follow-on story behind a feature flag, making this story fully independent.',
+    diffs: [
+      {
+        field: 'inScope',
+        label: 'In Scope',
+        before: ['Full-text search across title, description, tags', 'Auto-suggest with debounce 250ms', 'Keyboard nav in dropdown'],
+        after:  ['Full-text search across title, description, tags', 'Results page with relevance ranking', 'Search query preserved in URL'],
+      },
+      {
+        field: 'outOfScope',
+        label: 'Out of Scope',
+        before: ['Voice search', 'Image-based search', 'Search history (Phase 2)'],
+        after:  ['Voice search', 'Image-based search', 'Search history (Phase 2)', 'Auto-suggest dropdown (separate story, feature-flagged)'],
+      },
+      {
+        field: 'assumptions',
+        label: 'Assumptions',
+        before: ['Elasticsearch is provisioned and indexed', 'Product data indexed within 5 minutes of update'],
+        after:  ['Elasticsearch is provisioned and indexed', 'Product data indexed within 5 minutes of update', 'Auto-suggest will reuse the same Elasticsearch index and be delivered independently'],
+      },
+    ],
+    patch: {
+      inScope: ['Full-text search across title, description, tags', 'Results page with relevance ranking', 'Search query preserved in URL'],
+      outOfScope: ['Voice search', 'Image-based search', 'Search history (Phase 2)', 'Auto-suggest dropdown (separate story, feature-flagged)'],
+      assumptions: ['Elasticsearch is provisioned and indexed', 'Product data indexed within 5 minutes of update', 'Auto-suggest will reuse the same Elasticsearch index and be delivered independently'],
+    },
+  },
+
+  estimable: {
+    principleKey: 'estimable',
+    summary: 'Improve estimability by clarifying the 300ms measurement point in acceptance criteria and adding explicit assumptions about the Elasticsearch approach, so the team can commit to an estimate with confidence.',
+    diffs: [
+      {
+        field: 'acceptanceCriteria',
+        label: 'Acceptance Criteria',
+        before: ['Results appear within 300ms of each keystroke', 'Auto-suggest shows top 5 results with thumbnail and price', 'Results ranked by relevance with popularity fallback', 'Zero-results page shows alternatives', 'Search query preserved in URL'],
+        after:  ['Search API responds within 300ms at P95, measured server-side via APM tooling', 'Results page renders within 500ms total (including network) at P95', 'Results ranked by BM25 relevance score with popularity fallback', 'Zero-results page shows category links and top trending products', 'Search query preserved in URL for shareability and back-navigation'],
+      },
+      {
+        field: 'assumptions',
+        label: 'Assumptions',
+        before: ['Elasticsearch is provisioned and indexed', 'Product data indexed within 5 minutes of update'],
+        after:  ['Elasticsearch is provisioned and indexed', 'Product data indexed within 5 minutes of update', 'Team completes a 1-day Elasticsearch query DSL spike before sprint planning', 'BM25 relevance scoring is sufficient — no custom ML ranking model required for v1'],
+      },
+    ],
+    patch: {
+      acceptanceCriteria: [
+        'Search API responds within 300ms at P95, measured server-side via APM tooling',
+        'Results page renders within 500ms total (including network) at P95',
+        'Results ranked by BM25 relevance score with popularity fallback',
+        'Zero-results page shows category links and top trending products',
+        'Search query preserved in URL for shareability and back-navigation',
+      ],
+      assumptions: [
+        'Elasticsearch is provisioned and indexed',
+        'Product data indexed within 5 minutes of update',
+        'Team completes a 1-day Elasticsearch query DSL spike before sprint planning',
+        'BM25 relevance scoring is sufficient — no custom ML ranking model required for v1',
+      ],
+    },
+  },
+
+  small: {
+    principleKey: 'small',
+    summary: 'This story is too large for a single sprint. AI recommends splitting it into two independent stories — (1) basic keyword search with a results page, and (2) an auto-suggest dropdown overlay.',
+    isSplit: true,
+    splitStories: [
+      {
+        title: 'Keyword search with results page',
+        description: 'As a shopper, I want to search for products by keyword and see a ranked results page, so that I can find what I need quickly. Includes full-text search, relevance ranking, zero-results page, and URL state.',
+      },
+      {
+        title: 'Auto-suggest dropdown overlay',
+        description: 'As a shopper, I want to see product suggestions appear as I type in the search box, so that I can jump to the right product without completing my search. Delivered behind a feature flag, depends on Story 1.',
+      },
+    ],
+    diffs: [
+      {
+        field: 'title',
+        label: 'Story Title',
+        before: 'Full-text product search with auto-suggest',
+        after:  'Keyword search with results page',
+      },
+      {
+        field: 'iWantTo',
+        label: 'I want to',
+        before: 'search for products using natural language keywords with real-time suggestions as I type',
+        after:  'search for products by keyword and see a ranked, filterable results page',
+      },
+      {
+        field: 'inScope',
+        label: 'In Scope',
+        before: ['Full-text search across title, description, tags', 'Auto-suggest with debounce 250ms', 'Keyboard nav in dropdown'],
+        after:  ['Full-text search across title, description, tags', 'Relevance-ranked results page', 'Zero-results page with alternatives', 'Search query preserved in URL'],
+      },
+      {
+        field: 'outOfScope',
+        label: 'Out of Scope',
+        before: ['Voice search', 'Image-based search', 'Search history (Phase 2)'],
+        after:  ['Voice search', 'Image-based search', 'Search history (Phase 2)', 'Auto-suggest dropdown (Story 2)'],
+      },
+    ],
+    patch: {
+      title: 'Keyword search with results page',
+      iWantTo: 'search for products by keyword and see a ranked, filterable results page',
+      inScope: ['Full-text search across title, description, tags', 'Relevance-ranked results page', 'Zero-results page with alternatives', 'Search query preserved in URL'],
+      outOfScope: ['Voice search', 'Image-based search', 'Search history (Phase 2)', 'Auto-suggest dropdown (Story 2)'],
+      storyPoints: 5,
+    },
   },
 }

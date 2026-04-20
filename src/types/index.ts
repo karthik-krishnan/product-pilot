@@ -83,6 +83,22 @@ export interface INVESTValidation {
   testable: INVESTItem
 }
 
+export interface FieldDiff {
+  field: string
+  label: string
+  before: string | string[]
+  after: string | string[]
+}
+
+export interface FixProposal {
+  principleKey: string
+  summary: string
+  isSplit?: boolean
+  splitStories?: { title: string; description: string }[]
+  diffs: FieldDiff[]
+  patch: Partial<Story>
+}
+
 export interface INVESTItem {
   adheres: boolean
   score: number
