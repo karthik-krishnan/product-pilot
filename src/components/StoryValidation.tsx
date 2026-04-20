@@ -352,36 +352,42 @@ function ValidationDetail({ story, settings, onStoryChange, onAddStory, onViewSt
 
   return (
     <div className="flex flex-col gap-4 animate-fade-in-up">
-      {/* AI validate bar */}
-      {hasValidKey(settings) && (
-        <div className={`flex items-center gap-3 rounded-xl px-4 py-3 border ${
-          isMockValidation ? 'bg-amber-50 border-amber-200' : 'bg-emerald-50 border-emerald-200'
-        }`}>
-          {validating ? (
-            <>
-              <Loader2 className="w-3.5 h-3.5 animate-spin text-brand-500 shrink-0" />
-              <p className="text-xs text-brand-600 flex-1">Validating against INVEST principles with AI…</p>
-            </>
-          ) : isMockValidation ? (
-            <>
-              <AlertCircle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-              <p className="text-xs text-amber-700 flex-1">Showing sample validation — click to run real AI analysis.</p>
-              <button onClick={runValidation} className="btn-primary flex items-center gap-1.5 text-xs py-1 px-3 shrink-0">
-                <Sparkles className="w-3 h-3" />
-                Validate with AI
-              </button>
-            </>
-          ) : (
-            <>
-              <CheckCircle className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-              <p className="text-xs text-emerald-700 flex-1">Validated by AI · {settings.provider}</p>
-              <button onClick={runValidation} className="text-xs text-emerald-600 hover:text-emerald-800 underline shrink-0">
-                Re-validate
-              </button>
-            </>
-          )}
-        </div>
-      )}
+      {/* AI validate bar — always visible */}
+      <div className={`flex items-center gap-3 rounded-xl px-4 py-3 border ${
+        validating        ? 'bg-brand-50 border-brand-200' :
+        !isMockValidation ? 'bg-emerald-50 border-emerald-200' :
+        hasValidKey(settings) ? 'bg-amber-50 border-amber-200' :
+                            'bg-gray-50 border-gray-200'
+      }`}>
+        {validating ? (
+          <>
+            <Loader2 className="w-3.5 h-3.5 animate-spin text-brand-500 shrink-0" />
+            <p className="text-xs text-brand-600 flex-1">Validating against INVEST principles with AI…</p>
+          </>
+        ) : !isMockValidation ? (
+          <>
+            <CheckCircle className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+            <p className="text-xs text-emerald-700 flex-1">Validated by AI · {settings.provider}</p>
+            <button onClick={runValidation} className="text-xs text-emerald-600 hover:text-emerald-800 underline shrink-0">
+              Re-validate
+            </button>
+          </>
+        ) : hasValidKey(settings) ? (
+          <>
+            <AlertCircle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+            <p className="text-xs text-amber-700 flex-1">Showing sample validation — click to run real AI analysis.</p>
+            <button onClick={runValidation} className="btn-primary flex items-center gap-1.5 text-xs py-1 px-3 shrink-0">
+              <Sparkles className="w-3 h-3" />
+              Validate with AI
+            </button>
+          </>
+        ) : (
+          <>
+            <AlertCircle className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+            <p className="text-xs text-gray-500 flex-1">Sample data — add an API key in <strong>Settings</strong> to validate with AI.</p>
+          </>
+        )}
+      </div>
       {validateError && (
         <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
           <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0 mt-0.5" />
