@@ -181,18 +181,22 @@ export default function App() {
           })}
         </nav>
 
-        {/* Subtle footer with settings gear */}
-        <div className="px-4 py-3 border-t border-gray-100 flex items-center justify-between">
-          <div className="flex items-center gap-1.5 min-w-0">
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
-            <span className="text-xs text-gray-400 truncate">{PROVIDER_LABELS[state.settings.provider]}</span>
-          </div>
+        {/* Footer — settings */}
+        <div className="p-3 border-t border-gray-100">
           <button
             onClick={() => setSettingsOpen(true)}
-            className="text-gray-300 hover:text-gray-500 transition-colors ml-2 shrink-0"
-            title="Settings"
+            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors group"
           >
-            <SettingsIcon className="w-3.5 h-3.5" />
+            <div className="w-6 h-6 rounded-md bg-gray-100 group-hover:bg-gray-200 flex items-center justify-center shrink-0 transition-colors">
+              <SettingsIcon className="w-3.5 h-3.5 text-gray-500" />
+            </div>
+            <div className="min-w-0 text-left flex-1">
+              <p className="text-xs font-medium text-gray-600 group-hover:text-gray-800 transition-colors">Settings</p>
+              <div className="flex items-center gap-1 mt-0.5">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
+                <span className="text-xs text-gray-400 truncate">{PROVIDER_LABELS[state.settings.provider]}</span>
+              </div>
+            </div>
           </button>
         </div>
       </aside>
