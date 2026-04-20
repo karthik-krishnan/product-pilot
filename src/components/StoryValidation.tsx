@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   ShieldCheck, CheckCircle, XCircle, AlertCircle, ChevronDown, ChevronUp,
   Lightbulb, ArrowRight, ChevronRight, FileText, Sparkles, Check, X,
@@ -322,6 +322,12 @@ function ValidationDetail({ story, settings, onStoryChange, onAddStory, onViewSt
     }
   }
 
+  // Auto-validate when a key is available — component remounts on story or key change
+  useEffect(() => {
+    if (hasValidKey(settings)) runValidation()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const failingKeys = keys.filter(k => !validation[k].adheres && MOCK_INVEST_FIXES[k])
   const pendingFixes = failingKeys.filter(k => !acceptedKeys.has(k))
 
@@ -354,10 +360,10 @@ function ValidationDetail({ story, settings, onStoryChange, onAddStory, onViewSt
     <div className="flex flex-col gap-4 animate-fade-in-up">
       {/* AI validate bar — always visible */}
       <div className={`flex items-center gap-3 rounded-xl px-4 py-3 border ${
-        validating        ? 'bg-brand-50 border-brand-200' :
-        !isMockValidation ? 'bg-emerald-50 border-emerald-200' :
-        hasValidKey(settings) ? 'bg-amber-50 border-amber-200' :
-                            'bg-gray-50 border-gray-200'
+        validating          ? 'bg-brand-50 border-brand-200'   :
+        !isMockValidation   ? 'bg-emerald-50 border-emerald-200' :
+        hasValidKey(settings) ? 'bg-brand-50 border-brand-200' :
+                              'bg-gray-50 border-gray-200'
       }`}>
         {validating ? (
           <>
@@ -374,17 +380,13 @@ function ValidationDetail({ story, settings, onStoryChange, onAddStory, onViewSt
           </>
         ) : hasValidKey(settings) ? (
           <>
-            <AlertCircle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-            <p className="text-xs text-amber-700 flex-1">Showing sample validation — click to run real AI analysis.</p>
-            <button onClick={runValidation} className="btn-primary flex items-center gap-1.5 text-xs py-1 px-3 shrink-0">
-              <Sparkles className="w-3 h-3" />
-              Validate with AI
-            </button>
+            <Loader2 className="w-3.5 h-3.5 animate-spin text-brand-400 shrink-0" />
+            <p className="text-xs text-brand-600 flex-1">Connecting to AI for validation…</p>
           </>
         ) : (
           <>
             <AlertCircle className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-            <p className="text-xs text-gray-500 flex-1">Sample data — add an API key in <strong>Settings</strong> to validate with AI.</p>
+            <p className="text-xs text-gray-500 flex-1">Demo mode — showing sample data. Add an API key in <strong>Settings</strong> to validate with AI.</p>
           </>
         )}
       </div>
@@ -573,7 +575,7 @@ export default function StoryValidation({ storyId, stories, settings, onViewStor
         {/* Right — validation detail */}
         <div className="flex-1 overflow-y-auto">
           <ValidationDetail
-            key={selectedStory.id}
+            key={`${selectedStory.id}-${hasValidKey(settings)}`}
             story={getStory(selectedStory)}
             settings={settings}
             onStoryChange={updated => setStoryVersions(prev => ({ ...prev, [selectedStory.id]: updated }))}
