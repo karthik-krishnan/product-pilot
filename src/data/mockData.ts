@@ -320,6 +320,25 @@ export const MOCK_INVEST_FIXES: Record<string, FixProposal> = {
       title: 'Spike: Validate Elasticsearch query approach for product search',
       description: 'Time-boxed 1-day investigation to validate BM25 scoring, query DSL structure, and P95 latency targets against the provisioned cluster. Output: a short decision doc and a revised story-point estimate for the search story.',
     },
+    spikeNewStory: {
+      epicId: 'epic-2',
+      title: 'Spike: Validate Elasticsearch query approach for product search',
+      asA: 'development team',
+      iWantTo: 'run a time-boxed investigation into the Elasticsearch query DSL and BM25 scoring approach',
+      soThat: 'we can commit to a reliable estimate for the product search story with confidence',
+      acceptanceCriteria: [
+        'BM25 vs custom relevance scoring decision documented',
+        'P95 latency target (300ms) validated against provisioned cluster with representative data',
+        'Query DSL approach agreed and reviewed by the team',
+        'Revised story-point estimate for the search story produced',
+      ],
+      inScope: ['Elasticsearch query DSL evaluation', 'BM25 relevance scoring validation', 'P95 latency benchmarking'],
+      outOfScope: ['Full implementation', 'Frontend integration'],
+      assumptions: ['Elasticsearch cluster is accessible in the dev environment', 'Representative product data is indexed'],
+      crossFunctionalNeeds: ['Infrastructure: dev cluster access for benchmarking'],
+      priority: 'High' as const,
+      storyPoints: 1,
+    },
     diffs: [
       {
         field: 'acceptanceCriteria',

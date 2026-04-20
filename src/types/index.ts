@@ -98,6 +98,7 @@ export interface FixProposal {
   splitNewStory?: Omit<Story, 'id'>
   isSpike?: boolean
   spikeStory?: { title: string; description: string }
+  spikeNewStory?: Omit<Story, 'id'>
   diffs: FieldDiff[]
   patch: Partial<Story>
 }
