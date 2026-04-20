@@ -1,19 +1,20 @@
 import { useState, useRef, useEffect } from 'react'
 import { BookMarked, ChevronRight, Send, SkipForward, Sparkles, CheckCircle, ArrowRight, MessageSquare } from 'lucide-react'
-import type { Epic, Story, ChatMessage } from '../types'
+import type { AssistanceLevel, Epic, Story, ChatMessage } from '../types'
 import { MOCK_EPICS, MOCK_EPIC_QUESTIONS, MOCK_STORY_LIST } from '../data/mockData'
+import { getQuestionCount } from '../utils/assistanceLevels'
 
 interface Props {
   epicId: string
   epics: Epic[]
-  questionCount: number
+  assistanceLevel: AssistanceLevel
   onStoriesGenerated: (epicId: string, stories: Story[]) => void
   onViewStory: (storyId: string) => void
 }
 
 type Phase = 'input' | 'clarifying' | 'done'
 
-export default function StoryBreakdown({ epicId, epics: propEpics, questionCount, onStoriesGenerated, onViewStory }: Props) {
+export default function StoryBreakdown({ epicId, epics: propEpics, assistanceLevel, onStoriesGenerated, onViewStory }: Props) {
   const epics = propEpics.length > 0 ? propEpics : MOCK_EPICS
   const epic = epics.find(e => e.id === epicId) || epics[1]
 
@@ -27,6 +28,7 @@ export default function StoryBreakdown({ epicId, epics: propEpics, questionCount
   const initializedRef = useRef(false)
   const bottomRef = useRef<HTMLDivElement>(null)
 
+  const questionCount = useRef(getQuestionCount(assistanceLevel)).current
   const questions = MOCK_EPIC_QUESTIONS.slice(0, questionCount)
 
   useEffect(() => {
@@ -148,12 +150,14 @@ export default function StoryBreakdown({ epicId, epics: propEpics, questionCount
           <div className="flex items-center gap-3">
             <button onClick={handleSkip} className="btn-secondary flex items-center gap-2">
               <SkipForward className="w-4 h-4" />
-              Generate Stories Now
+              Generate Stories Directly
             </button>
-            <button onClick={startDiscovery} className="btn-primary flex items-center gap-2">
-              <Sparkles className="w-4 h-4" />
-              Explore & Brainstorm ({questions.length} questions)
-            </button>
+            {assistanceLevel > 0 && (
+              <button onClick={startDiscovery} className="btn-primary flex items-center gap-2">
+                <Sparkles className="w-4 h-4" />
+                Explore & Brainstorm
+              </button>
+            )}
           </div>
         </div>
       )}

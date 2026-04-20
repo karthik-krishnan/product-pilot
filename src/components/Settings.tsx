@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Settings as SettingsIcon, Eye, EyeOff, ChevronRight, Zap, Cloud } from 'lucide-react'
-import type { APISettings } from '../types'
+import type { APISettings, AssistanceLevel } from '../types'
+import { ASSISTANCE_LEVELS } from '../utils/assistanceLevels'
 
 interface Props {
   settings: APISettings
@@ -132,29 +133,81 @@ export default function Settings({ settings, onSave }: Props) {
         </div>
       )}
 
-      {/* Behaviour Settings */}
+      {/* AI Assistance Level */}
       <div className="card p-6 mb-8">
-        <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-4">AI Behaviour</h2>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1.5">
-            Clarifying Questions per Interaction
-          </label>
-          <div className="flex items-center gap-3">
-            {[1, 2, 3, 4, 5].map(n => (
-              <button
-                key={n}
-                onClick={() => update({ clarifyingQuestionsCount: n })}
-                className={`w-10 h-10 rounded-lg text-sm font-semibold transition-all ${
-                  local.clarifyingQuestionsCount === n
-                    ? 'bg-brand-600 text-white shadow-sm'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                {n}
-              </button>
-            ))}
+        <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-1">AI Assistance Level</h2>
+        <p className="text-xs text-gray-400 mb-6">
+          Move the lever to match your experience — a seasoned BA may want minimal AI prompting, a junior BA benefits from a more guided dialogue.
+        </p>
+
+        {/* Slider track */}
+        <div className="relative mb-6">
+          {/* Connecting line */}
+          <div className="absolute top-3.5 left-0 right-0 h-1 bg-gray-100 rounded-full" />
+          <div
+            className="absolute top-3.5 left-0 h-1 rounded-full transition-all duration-300"
+            style={{
+              width: `${(local.assistanceLevel / 4) * 100}%`,
+              backgroundColor: ['#9ca3af', '#34d399', '#6272f5', '#fbbf24', '#8b5cf6'][local.assistanceLevel],
+            }}
+          />
+
+          {/* Stop markers + labels */}
+          <div className="relative flex justify-between">
+            {ASSISTANCE_LEVELS.map(level => {
+              const isSelected = local.assistanceLevel === level.id
+              const isPast = local.assistanceLevel >= level.id
+              return (
+                <button
+                  key={level.id}
+                  onClick={() => update({ assistanceLevel: level.id as AssistanceLevel })}
+                  className="flex flex-col items-center gap-2 group"
+                  style={{ width: '20%' }}
+                >
+                  {/* Dot */}
+                  <div className={`w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all duration-200 z-10 ${
+                    isSelected
+                      ? 'border-current shadow-md scale-125 bg-white'
+                      : isPast
+                      ? 'border-current bg-current opacity-40 scale-100'
+                      : 'border-gray-200 bg-white scale-100'
+                  } ${level.color}`}>
+                    {isSelected && (
+                      <div className={`w-2.5 h-2.5 rounded-full ${['bg-gray-400','bg-emerald-400','bg-brand-500','bg-amber-400','bg-violet-500'][level.id]}`} />
+                    )}
+                  </div>
+
+                  {/* Label */}
+                  <div className="text-center">
+                    <p className={`text-xs font-semibold transition-colors leading-tight ${isSelected ? level.color : 'text-gray-400'}`}>
+                      {level.name}
+                    </p>
+                    <p className={`text-xs transition-colors leading-tight mt-0.5 ${isSelected ? 'text-gray-500' : 'text-gray-300'}`}>
+                      {level.tagline}
+                    </p>
+                  </div>
+                </button>
+              )
+            })}
           </div>
-          <p className="text-xs text-gray-400 mt-2">How many questions the AI asks before generating epics or stories (default: 3)</p>
+        </div>
+
+        {/* Selected level description */}
+        <div className={`rounded-xl border px-4 py-3 transition-all duration-300 ${
+          ['bg-gray-50 border-gray-200','bg-emerald-50 border-emerald-200','bg-brand-50 border-brand-200','bg-amber-50 border-amber-200','bg-violet-50 border-violet-200'][local.assistanceLevel]
+        }`}>
+          <p className={`text-xs font-semibold mb-0.5 ${ASSISTANCE_LEVELS[local.assistanceLevel].color}`}>
+            {ASSISTANCE_LEVELS[local.assistanceLevel].name}
+            {local.assistanceLevel > 0 && (
+              <span className="font-normal text-gray-400 ml-1.5">
+                · {ASSISTANCE_LEVELS[local.assistanceLevel].range[0]}
+                {ASSISTANCE_LEVELS[local.assistanceLevel].range[0] !== ASSISTANCE_LEVELS[local.assistanceLevel].range[1]
+                  ? `–${ASSISTANCE_LEVELS[local.assistanceLevel].range[1]} questions`
+                  : ' question'}
+              </span>
+            )}
+          </p>
+          <p className="text-xs text-gray-500">{ASSISTANCE_LEVELS[local.assistanceLevel].description}</p>
         </div>
       </div>
 

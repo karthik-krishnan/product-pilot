@@ -31,7 +31,7 @@ const DEFAULT_SETTINGS: APISettings = {
   azureEndpoint: '',
   azureKey: '',
   azureDeployment: '',
-  clarifyingQuestionsCount: 3,
+  assistanceLevel: 2,
 }
 
 const DEFAULT_CONTEXT: ContextCaptureType = {
@@ -185,7 +185,7 @@ export default function App() {
         {/* Footer */}
         <div className="p-4 border-t border-gray-100">
           <p className="text-xs text-gray-400 text-center">
-            {state.settings.clarifyingQuestionsCount} questions per interaction
+            {['Streamlined','Light Touch','Collaborative','Thorough','Deep Dive'][state.settings.assistanceLevel]} mode
           </p>
         </div>
       </aside>
@@ -221,7 +221,7 @@ export default function App() {
               rawRequirements={state.rawRequirements}
               clarifyingQuestions={state.clarifyingQuestions}
               clarifyingComplete={state.clarifyingComplete}
-              questionCount={state.settings.clarifyingQuestionsCount}
+              assistanceLevel={state.settings.assistanceLevel}
               onRequirementsChange={r => setState(p => ({ ...p, rawRequirements: r }))}
               onClarifyingComplete={handleClarifyingComplete}
               onGenerateEpics={handleGenerateEpics}
@@ -238,7 +238,7 @@ export default function App() {
             <StoryBreakdown
               epicId={state.selectedEpicId}
               epics={state.epics}
-              questionCount={state.settings.clarifyingQuestionsCount}
+              assistanceLevel={state.settings.assistanceLevel}
               onStoriesGenerated={handleStoriesGenerated}
               onViewStory={handleViewStory}
             />

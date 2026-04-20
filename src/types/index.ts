@@ -1,12 +1,14 @@
 export type AIProvider = 'anthropic' | 'azure-openai'
 
+export type AssistanceLevel = 0 | 1 | 2 | 3 | 4
+
 export interface APISettings {
   provider: AIProvider
   anthropicKey: string
   azureEndpoint: string
   azureKey: string
   azureDeployment: string
-  clarifyingQuestionsCount: number
+  assistanceLevel: AssistanceLevel
 }
 
 export interface ContextCapture {

@@ -1,14 +1,15 @@
 import { useState, useRef, useEffect } from 'react'
 import { Send, SkipForward, Sparkles, MessageSquare } from 'lucide-react'
-import type { ClarifyingQuestion, ChatMessage } from '../types'
+import type { AssistanceLevel, ClarifyingQuestion, ChatMessage } from '../types'
 import ChatBubble, { TypingIndicator } from './ChatBubble'
 import { MOCK_CLARIFYING_QUESTIONS } from '../data/mockData'
+import { getQuestionCount } from '../utils/assistanceLevels'
 
 interface Props {
   rawRequirements: string
   clarifyingQuestions: ClarifyingQuestion[]
   clarifyingComplete: boolean
-  questionCount: number
+  assistanceLevel: AssistanceLevel
   onRequirementsChange: (r: string) => void
   onClarifyingComplete: (questions: ClarifyingQuestion[]) => void
   onGenerateEpics: () => void
@@ -18,7 +19,7 @@ type Phase = 'input' | 'clarifying' | 'done'
 
 export default function RequirementsInput({
   rawRequirements,
-  questionCount,
+  assistanceLevel,
   onRequirementsChange,
   onClarifyingComplete,
   onGenerateEpics,
@@ -32,6 +33,7 @@ export default function RequirementsInput({
   const [localReqs, setLocalReqs] = useState(rawRequirements)
   const bottomRef = useRef<HTMLDivElement>(null)
 
+  const questionCount = useRef(getQuestionCount(assistanceLevel)).current
   const questions = MOCK_CLARIFYING_QUESTIONS.slice(0, questionCount)
 
   useEffect(() => {
@@ -153,16 +155,18 @@ export default function RequirementsInput({
           <div className="flex items-center justify-between">
             <button onClick={handleSkip} className="btn-secondary flex items-center gap-2">
               <SkipForward className="w-4 h-4" />
-              Skip Questions & Generate Epics
+              Generate Epics Directly
             </button>
-            <button
-              onClick={startClarifying}
-              disabled={!localReqs.trim()}
-              className="btn-primary flex items-center gap-2"
-            >
-              <Sparkles className="w-4 h-4" />
-              Explore & Brainstorm ({questions.length} questions)
-            </button>
+            {assistanceLevel > 0 && (
+              <button
+                onClick={startClarifying}
+                disabled={!localReqs.trim()}
+                className="btn-primary flex items-center gap-2"
+              >
+                <Sparkles className="w-4 h-4" />
+                Explore & Brainstorm
+              </button>
+            )}
           </div>
         </div>
       )}
