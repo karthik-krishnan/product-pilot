@@ -293,19 +293,21 @@ function INVESTRow({ principleKey, item, fix: initialFix, accepted, settings, st
   )
 }
 
-function ValidationDetail({ story, settings, onStoryChange, onAddStory, onViewStory }: {
+function ValidationDetail({ story, settings, validation, isMockValidation, acceptedKeys, onValidated, onFixAccepted, onStoryChange, onAddStory, onViewStory }: {
   story: Story
   settings: APISettings
+  validation: INVESTValidation
+  isMockValidation: boolean
+  acceptedKeys: Set<string>
+  onValidated: (v: INVESTValidation) => void
+  onFixAccepted: (key: string) => void
   onStoryChange: (s: Story) => void
   onAddStory: (s: Omit<Story, 'id'>) => void
   onViewStory: (id: string) => void
 }) {
-  const [validation, setValidation] = useState<INVESTValidation>(story.investValidation || MOCK_INVEST_VALIDATION)
-  const [isMockValidation, setIsMockValidation] = useState(!story.investValidation)
   const [validating, setValidating] = useState(false)
   const [validateError, setValidateError] = useState<string | null>(null)
   const keys = Object.keys(INVEST_META) as INVESTKey[]
-  const [acceptedKeys, setAcceptedKeys] = useState<Set<string>>(new Set())
   const [fixAllLoading, setFixAllLoading] = useState(false)
 
   const runValidation = async () => {
@@ -313,8 +315,7 @@ function ValidationDetail({ story, settings, onStoryChange, onAddStory, onViewSt
     setValidateError(null)
     try {
       const raw = await callLLM(buildValidateINVESTPrompt(story), settings)
-      setValidation(parseINVESTValidation(raw))
-      setIsMockValidation(false)
+      onValidated(parseINVESTValidation(raw))
     } catch (err) {
       setValidateError((err as Error).message)
     } finally {
@@ -322,7 +323,7 @@ function ValidationDetail({ story, settings, onStoryChange, onAddStory, onViewSt
     }
   }
 
-  // Auto-validate when a key is available — component remounts on story or key change
+  // Auto-validate on mount when key is available
   useEffect(() => {
     if (hasValidKey(settings)) runValidation()
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -334,7 +335,7 @@ function ValidationDetail({ story, settings, onStoryChange, onAddStory, onViewSt
   const acceptFix = (key: string, patch: Partial<Story>, newStory?: Omit<Story, 'id'>) => {
     onStoryChange({ ...story, ...patch })
     if (newStory) onAddStory(newStory)
-    setAcceptedKeys(prev => new Set([...prev, key]))
+    onFixAccepted(key)
   }
 
   const fixAll = () => {
@@ -345,7 +346,7 @@ function ValidationDetail({ story, settings, onStoryChange, onAddStory, onViewSt
         return fix ? { ...acc, ...fix.patch } : acc
       }, {} as Partial<Story>)
       onStoryChange({ ...story, ...merged })
-      setAcceptedKeys(new Set(keys.filter(k => !validation[k].adheres && MOCK_INVEST_FIXES[k])))
+      pendingFixes.forEach(k => onFixAccepted(k))
       setFixAllLoading(false)
     }, 1500)
   }
@@ -498,12 +499,17 @@ interface Props {
   onAddStory?: (epicId: string, story: Story) => void
 }
 
+const INVEST_KEYS = Object.keys(INVEST_META) as INVESTKey[]
+
 export default function StoryValidation({ storyId, stories, settings, onViewStory, onAddStory }: Props) {
   const allStories = stories.length > 0 ? stories : MOCK_STORY_LIST
   const initial = allStories.find(s => s.id === storyId) || allStories[0]
   const [selectedStory, setSelectedStory] = useState<Story>(initial)
   const [storyVersions, setStoryVersions] = useState<Record<string, Story>>({})
   const [localStories, setLocalStories] = useState<Story[]>(allStories)
+  // Per-story validated results and accepted fix keys — drives the left panel
+  const [validations, setValidations] = useState<Record<string, INVESTValidation>>({})
+  const [acceptedKeys, setAcceptedKeys] = useState<Record<string, Set<string>>>({})
 
   const handleAddStory = (partial: Omit<Story, 'id'>) => {
     const newStory: Story = { ...partial, id: `story-split-${Date.now()}` }
@@ -512,6 +518,15 @@ export default function StoryValidation({ storyId, stories, settings, onViewStor
   }
 
   const getStory = (s: Story) => storyVersions[s.id] || s
+
+  const handleValidated = (storyId: string, v: INVESTValidation) =>
+    setValidations(prev => ({ ...prev, [storyId]: v }))
+
+  const handleFixAccepted = (storyId: string, key: string) =>
+    setAcceptedKeys(prev => ({
+      ...prev,
+      [storyId]: new Set([...(prev[storyId] ?? []), key]),
+    }))
 
   return (
     <div className="h-[calc(100vh-0px)] flex flex-col py-6 px-4 max-w-7xl mx-auto animate-fade-in-up">
@@ -534,10 +549,12 @@ export default function StoryValidation({ storyId, stories, settings, onViewStor
           {localStories.map(s => {
             const story = getStory(s)
             const isSelected = s.id === selectedStory.id
-            const v = story.investValidation || MOCK_INVEST_VALIDATION
-            const keys = Object.keys(INVEST_META) as INVESTKey[]
-            const score = Math.round(keys.reduce((sum, k) => sum + v[k].score, 0) / keys.length)
-            const issues = keys.filter(k => !v[k].adheres).length
+            const v = validations[s.id]
+            const fixed = acceptedKeys[s.id] ?? new Set()
+            const score = v
+              ? Math.round(INVEST_KEYS.reduce((sum, k) => sum + (fixed.has(k) ? Math.min(v[k].score + 35, 95) : v[k].score), 0) / INVEST_KEYS.length)
+              : null
+            const issues = v ? INVEST_KEYS.filter(k => !v[k].adheres && !fixed.has(k)).length : null
 
             return (
               <button
@@ -555,13 +572,22 @@ export default function StoryValidation({ storyId, stories, settings, onViewStor
                     {story.title}
                   </p>
                   <div className="flex items-center gap-2 mt-1.5">
-                    <span className={`text-xs font-bold ${score >= 80 ? 'text-emerald-600' : score >= 60 ? 'text-amber-600' : 'text-red-500'}`}>
-                      {score}%
-                    </span>
-                    {issues > 0 && (
-                      <span className="text-xs text-orange-500 bg-orange-50 border border-orange-100 rounded-full px-1.5 py-0.5">
-                        {issues} issue{issues > 1 ? 's' : ''}
-                      </span>
+                    {score !== null ? (
+                      <>
+                        <span className={`text-xs font-bold ${score >= 80 ? 'text-emerald-600' : score >= 60 ? 'text-amber-600' : 'text-red-500'}`}>
+                          {score}%
+                        </span>
+                        {issues !== null && issues > 0 && (
+                          <span className="text-xs text-orange-500 bg-orange-50 border border-orange-100 rounded-full px-1.5 py-0.5">
+                            {issues} issue{issues > 1 ? 's' : ''}
+                          </span>
+                        )}
+                        {issues === 0 && (
+                          <span className="text-xs text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-full px-1.5 py-0.5">All clear</span>
+                        )}
+                      </>
+                    ) : (
+                      <span className="text-xs text-gray-400 italic">not validated</span>
                     )}
                     <span className={`badge text-xs ml-auto ${PRIORITY_COLORS[story.priority]}`}>{story.priority}</span>
                   </div>
@@ -578,6 +604,11 @@ export default function StoryValidation({ storyId, stories, settings, onViewStor
             key={`${selectedStory.id}-${hasValidKey(settings)}`}
             story={getStory(selectedStory)}
             settings={settings}
+            validation={validations[selectedStory.id] ?? MOCK_INVEST_VALIDATION}
+            isMockValidation={!validations[selectedStory.id]}
+            acceptedKeys={acceptedKeys[selectedStory.id] ?? new Set()}
+            onValidated={v => handleValidated(selectedStory.id, v)}
+            onFixAccepted={key => handleFixAccepted(selectedStory.id, key)}
             onStoryChange={updated => setStoryVersions(prev => ({ ...prev, [selectedStory.id]: updated }))}
             onAddStory={handleAddStory}
             onViewStory={onViewStory}
