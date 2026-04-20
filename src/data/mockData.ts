@@ -233,42 +233,50 @@ export const MOCK_STORY_LIST: Story[] = [
 
 export const MOCK_INVEST_VALIDATION: INVESTValidation = {
   independent: {
-    adheres: true,
-    score: 90,
-    feedback: 'This story can be developed and deployed independently of other search stories.',
-    suggestions: [],
+    adheres: false,
+    score: 50,
+    feedback: 'This story has a hidden dependency on the auto-suggest dropdown, which shares the same Elasticsearch query layer. Delivering search results without auto-suggest requires coordination.',
+    suggestions: [
+      'Decouple the auto-suggest API call from the main search query so each can be shipped independently',
+      'Use a feature flag to enable auto-suggest once the base search story is live',
+    ],
   },
   negotiable: {
     adheres: true,
-    score: 85,
-    feedback: 'The auto-suggest threshold (5 results) and debounce value are appropriately flexible for discussion.',
-    suggestions: ['Consider making the debounce duration a configurable parameter'],
+    score: 82,
+    feedback: 'The auto-suggest threshold (5 results) and debounce value are flexible and open to discussion with the team.',
+    suggestions: ['Consider making the debounce duration a configurable parameter driven by backend config'],
   },
   valuable: {
     adheres: true,
     score: 95,
-    feedback: 'Directly improves discoverability and conversion rate — clear business value.',
+    feedback: 'Directly improves discoverability and conversion rate — clear and measurable business value.',
     suggestions: [],
   },
   estimable: {
-    adheres: true,
-    score: 80,
-    feedback: 'Well-defined acceptance criteria allow reasonable estimation.',
-    suggestions: ['Add a spike if the team is unfamiliar with Elasticsearch query DSL'],
+    adheres: false,
+    score: 58,
+    feedback: 'The story lacks clarity on the Elasticsearch query strategy and ranking algorithm, making it difficult for the team to estimate with confidence.',
+    suggestions: [
+      'Add a time-boxed spike (1–2 days) to validate the Elasticsearch query approach before estimating',
+      'Clarify whether BM25 or a custom relevance model is expected — this significantly changes complexity',
+      'Define the fallback behaviour explicitly so edge cases can be factored into the estimate',
+    ],
   },
   small: {
     adheres: false,
-    score: 55,
-    feedback: 'The story combines search and auto-suggest, which could be two separate deliverables.',
+    score: 45,
+    feedback: 'The story bundles full-text search, auto-suggest, URL state management, and a zero-results page — too much for a single sprint.',
     suggestions: [
       'Split into: (1) Basic keyword search with results page, (2) Auto-suggest dropdown overlay',
-      'Each split would be independently deployable behind a feature flag',
+      'Move zero-results page with alternatives to a separate polish story',
+      'URL state management can accompany whichever story it is most tightly coupled to',
     ],
   },
   testable: {
     adheres: true,
-    score: 90,
-    feedback: 'All acceptance criteria are measurable and can be verified by automated tests.',
-    suggestions: ['Add explicit performance test criterion for P95 latency in CI'],
+    score: 88,
+    feedback: 'Most acceptance criteria are measurable, though the 300ms response time criterion needs a defined measurement point.',
+    suggestions: ['Clarify whether 300ms is measured client-side (render) or server-side (API response) — they require different test approaches'],
   },
 }
