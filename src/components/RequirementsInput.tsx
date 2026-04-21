@@ -66,7 +66,7 @@ export default function RequirementsInput({
       setLlmLoading(true)
       addMessage({
         role: 'assistant',
-        content: `Thanks — I've reviewed your requirements. Let me generate ${questionCount} targeted question${questionCount > 1 ? 's' : ''} to clarify the scope before writing your epics…`,
+        content: `Thanks — I've reviewed your requirements. Let me ask a few clarifying questions before writing your epics…`,
       })
       try {
         const raw = await callLLM(
@@ -77,40 +77,26 @@ export default function RequirementsInput({
         questionsRef.current = qs
         setLlmLoading(false)
         simulateTyping(() => {
-          addMessage({
-            role: 'assistant',
-            content: `**Question 1 of ${qs.length}:** ${qs[0].question}`,
-            options: qs[0].options,
-          })
+          addMessage({ role: 'assistant', content: qs[0].question, options: qs[0].options })
         }, 400)
       } catch (err) {
         setLlmLoading(false)
         setError((err as Error).message)
-        // fall back to mock questions
         questionsRef.current = MOCK_CLARIFYING_QUESTIONS.slice(0, questionCount)
         simulateTyping(() => {
           const q = questionsRef.current[0]
-          addMessage({
-            role: 'assistant',
-            content: `**Question 1 of ${questionsRef.current.length}:** ${q.question}`,
-            options: q.options,
-          })
+          addMessage({ role: 'assistant', content: q.question, options: q.options })
         }, 400)
       }
     } else {
-      // mock path
       questionsRef.current = MOCK_CLARIFYING_QUESTIONS.slice(0, questionCount)
       addMessage({
         role: 'assistant',
-        content: `Thanks — I've reviewed your requirements. Before generating epics, I have ${questionsRef.current.length} clarifying question${questionsRef.current.length > 1 ? 's' : ''} to make sure the output is as precise as possible.`,
+        content: `Thanks — I've reviewed your requirements. I have a few clarifying questions to make sure the output is as precise as possible.`,
       })
       simulateTyping(() => {
         const q = questionsRef.current[0]
-        addMessage({
-          role: 'assistant',
-          content: `**Question 1 of ${questionsRef.current.length}:** ${q.question}`,
-          options: q.options,
-        })
+        addMessage({ role: 'assistant', content: q.question, options: q.options })
       }, 800)
     }
   }
@@ -150,11 +136,7 @@ export default function RequirementsInput({
       setCurrentQIndex(next)
       simulateTyping(() => {
         const nextQ = qs[next]
-        addMessage({
-          role: 'assistant',
-          content: `**Question ${next + 1} of ${qs.length}:** ${nextQ.question}`,
-          options: nextQ.options,
-        })
+        addMessage({ role: 'assistant', content: nextQ.question, options: nextQ.options })
       })
     }
   }
@@ -260,9 +242,6 @@ export default function RequirementsInput({
             <div className="px-5 pt-4">
               <div className="flex items-center justify-between mb-1">
                 <span className="text-xs text-gray-500">Clarification progress</span>
-                <span className="text-xs font-medium text-brand-600">
-                  {answeredQuestions.length} / {questions.length}
-                </span>
               </div>
               <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
                 <div

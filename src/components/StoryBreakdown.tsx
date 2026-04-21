@@ -112,24 +112,24 @@ function DiscoveryChat({ epic, settings, context, onComplete, onDismiss }: {
   const startDiscovery = async () => {
     if (hasValidKey(settings) && settings.assistanceLevel > 0) {
       setLlmLoading(true)
-      addMsg({ role: 'assistant', content: `Let me generate ${questionCount} focused question${questionCount > 1 ? 's' : ''} to help define precise stories for **"${epic.title}"**…` })
+      addMsg({ role: 'assistant', content: `Let me ask a few focused questions to help define precise stories for **"${epic.title}"**…` })
       try {
         const raw = await callLLM(buildClarifyingQuestionsPrompt(`Epic: ${epic.title}\n${epic.description}`, context, questionCount), settings)
         const qs = parseClarifyingQuestions(raw)
         questionsRef.current = qs
         setLlmLoading(false)
-        simulateTyping(() => addMsg({ role: 'assistant', content: `**Q1 of ${qs.length}:** ${qs[0].question}`, options: qs[0].options }), 300)
+        simulateTyping(() => addMsg({ role: 'assistant', content: qs[0].question, options: qs[0].options }), 300)
       } catch {
         setLlmLoading(false)
         questionsRef.current = MOCK_EPIC_QUESTIONS.slice(0, questionCount)
         const q = questionsRef.current[0]
-        simulateTyping(() => addMsg({ role: 'assistant', content: `**Q1 of ${questionsRef.current.length}:** ${q.question}`, options: q.options }), 300)
+        simulateTyping(() => addMsg({ role: 'assistant', content: q.question, options: q.options }), 300)
       }
     } else {
       questionsRef.current = MOCK_EPIC_QUESTIONS.slice(0, questionCount)
       const qs = questionsRef.current
-      addMsg({ role: 'assistant', content: `I have ${qs.length} question${qs.length > 1 ? 's' : ''} to help define stories for **"${epic.title}"**.` })
-      simulateTyping(() => addMsg({ role: 'assistant', content: `**Q1 of ${qs.length}:** ${qs[0].question}`, options: qs[0].options }))
+      addMsg({ role: 'assistant', content: `I have a few questions to help define stories for **"${epic.title}"**.` })
+      simulateTyping(() => addMsg({ role: 'assistant', content: qs[0].question, options: qs[0].options }))
     }
   }
 
@@ -148,7 +148,7 @@ function DiscoveryChat({ epic, settings, context, onComplete, onDismiss }: {
     } else {
       setCurrentQIdx(next)
       const nextQ = qs[next]
-      simulateTyping(() => addMsg({ role: 'assistant', content: `**Q${next + 1} of ${qs.length}:** ${nextQ.question}`, options: nextQ.options }))
+      simulateTyping(() => addMsg({ role: 'assistant', content: nextQ.question, options: nextQ.options }))
     }
   }
 
