@@ -4,6 +4,8 @@
 
 ProductPilot is an AI-powered product backlog assistant that turns raw requirements into structured, INVEST-compliant agile artefacts. Connect your own LLM API key and go from a high-level brief to fully detailed epics and user stories in minutes.
 
+**[Try the live demo →](https://business-analyst-ai-assistant.netlify.app/)**
+
 ---
 
 ## Quickstart
