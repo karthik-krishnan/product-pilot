@@ -95,13 +95,16 @@ function DiscoveryChat({ epic, settings, context, onComplete, onDismiss }: {
   const [currentQIdx, setCurrentQIdx]       = useState(0)
   const [answeredCount, setAnsweredCount]   = useState(0)
   const [answered, setAnswered]             = useState<ClarifyingQuestion[]>([])
-  const questionsRef = useRef<ClarifyingQuestion[]>([])
-  const bottomRef    = useRef<HTMLDivElement>(null)
+  const questionsRef  = useRef<ClarifyingQuestion[]>([])
+  const bottomRef     = useRef<HTMLDivElement>(null)
+  const startedRef    = useRef(false)
   const questionCount = useRef(getQuestionCount(settings.assistanceLevel)).current
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages, isTyping])
 
   useEffect(() => {
+    if (startedRef.current) return
+    startedRef.current = true
     startDiscovery()
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
