@@ -20,6 +20,7 @@ const NAV_STEPS: { id: AppStep; label: string; icon: React.ComponentType<{ class
 const STEP_ORDER: AppStep[] = ['context', 'requirements', 'epics', 'stories']
 
 const PROVIDER_LABELS: Record<string, string> = {
+  demo:           'Demo mode',
   anthropic:      'Anthropic Claude',
   openai:         'OpenAI',
   'azure-openai': 'Azure OpenAI',
@@ -200,7 +201,7 @@ export default function App() {
             <div className="min-w-0 text-left flex-1">
               <p className="text-xs font-medium text-gray-600 group-hover:text-gray-800 transition-colors">Settings</p>
               <div className="flex items-center gap-1 mt-0.5">
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
+                <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${state.settings.provider === 'demo' ? 'bg-amber-400' : 'bg-emerald-400'}`} />
                 <span className="text-xs text-gray-400 truncate">{PROVIDER_LABELS[state.settings.provider]}</span>
               </div>
             </div>
