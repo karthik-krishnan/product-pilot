@@ -17,6 +17,10 @@ export class LLMError extends Error {
   }
 }
 
+export function isDemo(settings: APISettings): boolean {
+  return settings.provider === 'demo'
+}
+
 export function hasValidKey(settings: APISettings): boolean {
   switch (settings.provider) {
     case 'demo':         return false
@@ -26,6 +30,11 @@ export function hasValidKey(settings: APISettings): boolean {
     case 'google':       return !!settings.googleKey.trim()
     case 'ollama':       return !!settings.ollamaEndpoint.trim() && !!settings.ollamaModel.trim()
   }
+}
+
+// True when we can make live LLM calls — not demo and has valid credentials
+export function isLiveMode(settings: APISettings): boolean {
+  return !isDemo(settings) && hasValidKey(settings)
 }
 
 export function parseJSON<T>(raw: string): T {

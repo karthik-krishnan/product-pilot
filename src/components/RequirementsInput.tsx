@@ -4,7 +4,7 @@ import type { APISettings, ContextCapture, ClarifyingQuestion, ChatMessage, Epic
 import ChatBubble, { TypingIndicator } from './ChatBubble'
 import { MOCK_CLARIFYING_QUESTIONS, MOCK_EPICS } from '../data/mockData'
 import { getQuestionCount } from '../utils/assistanceLevels'
-import { callLLM, hasValidKey } from '../services/llm/client'
+import { callLLM, isLiveMode } from '../services/llm/client'
 import { buildClarifyingQuestionsPrompt, parseClarifyingQuestions } from '../prompts/clarifyingQuestions'
 import { buildGenerateEpicsPrompt, parseEpics } from '../prompts/generateEpics'
 
@@ -41,7 +41,7 @@ export default function RequirementsInput({
   const bottomRef = useRef<HTMLDivElement>(null)
   const questionsRef = useRef<ClarifyingQuestion[]>([])
 
-  const useLLM = hasValidKey(settings)
+  const useLLM = isLiveMode(settings)
   const questionCount = useRef(getQuestionCount(settings.assistanceLevel)).current
 
   useEffect(() => {

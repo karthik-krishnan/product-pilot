@@ -6,7 +6,7 @@ import {
 } from 'lucide-react'
 import type { APISettings, Story, INVESTValidation, FixProposal, FieldDiff } from '../types'
 import { MOCK_INVEST_VALIDATION, MOCK_STORY_LIST, MOCK_INVEST_FIXES } from '../data/mockData'
-import { callLLM, hasValidKey } from '../services/llm/client'
+import { callLLM, hasValidKey, isDemo, isLiveMode } from '../services/llm/client'
 import { buildValidateINVESTPrompt, parseINVESTValidation } from '../prompts/validateINVEST'
 import { buildFixINVESTPrompt, parseFixProposal } from '../prompts/fixINVEST'
 
@@ -100,7 +100,7 @@ function INVESTRow({ principleKey, item, fix: initialFix, accepted, settings, st
     if (fixOpen) { setFixOpen(false); return }
     setLoading(true)
     setFixError(null)
-    if (hasValidKey(settings)) {
+    if (isLiveMode(settings)) {
       try {
         const raw = await callLLM(buildFixINVESTPrompt(story, principleKey, meta.label, item), settings)
         setLiveFix(parseFixProposal(raw))
@@ -167,7 +167,7 @@ function INVESTRow({ principleKey, item, fix: initialFix, accepted, settings, st
                 {item.suggestions.length} suggestion{item.suggestions.length > 1 ? 's' : ''}
               </button>
             )}
-            {(hasValidKey(settings) || fix) && !accepted && (!item.adheres || item.suggestions.length > 0) && (
+            {(isLiveMode(settings) || fix) && !accepted && (!item.adheres || item.suggestions.length > 0) && (
               <button
                 onClick={handleFixClick}
                 disabled={loading}
@@ -391,7 +391,7 @@ export function ValidationSection({
 
   // Auto-validate on first mount if not yet validated and key is present
   useEffect(() => {
-    if (validation === null && hasValidKey(settings)) {
+    if (validation === null && isLiveMode(settings)) {
       runValidation()
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -399,7 +399,7 @@ export function ValidationSection({
 
   const isReal = validation !== null
   // Only show mock data in demo mode (no key). With a key, wait for the real result.
-  const displayValidation = validation ?? (hasValidKey(settings) ? null : MOCK_INVEST_VALIDATION)
+  const displayValidation = validation ?? (isDemo(settings) ? MOCK_INVEST_VALIDATION : null)
 
   const failingKeys   = displayValidation ? INVEST_KEYS.filter(k => !displayValidation[k].adheres && MOCK_INVEST_FIXES[k]) : []
   const pendingFixes  = failingKeys.filter(k => !acceptedKeys.has(k))
@@ -436,7 +436,7 @@ export function ValidationSection({
       <div className={`flex items-center gap-3 rounded-xl px-4 py-3 border ${
         validating          ? 'bg-brand-50 border-brand-200'
         : isReal            ? 'bg-emerald-50 border-emerald-200'
-        : hasValidKey(settings) ? 'bg-brand-50 border-brand-200'
+        : isLiveMode(settings) ? 'bg-brand-50 border-brand-200'
         :                     'bg-gray-50 border-gray-200'
       }`}>
         {validating ? (
@@ -452,7 +452,7 @@ export function ValidationSection({
               Re-validate
             </button>
           </>
-        ) : hasValidKey(settings) ? (
+        ) : isLiveMode(settings) ? (
           <>
             <Loader2 className="w-3.5 h-3.5 animate-spin text-brand-400 shrink-0" />
             <p className="text-xs text-brand-600 flex-1">Connecting to AI…</p>
@@ -623,7 +623,7 @@ function StoryAccordionItem({
         <div className="px-4 pb-5 border-t border-gray-100 animate-fade-in-up">
           <StoryContent story={story} />
           <ValidationSection
-            key={`${story.id}-${hasValidKey(settings)}`}
+            key={`${story.id}-${isLiveMode(settings)}`}
             story={story}
             settings={settings}
             validation={validation}
@@ -683,7 +683,7 @@ export default function StoryValidation({
             Expand a story to read it in full and validate against INVEST principles
           </p>
         </div>
-        {hasValidKey(settings) && (
+        {isLiveMode(settings) && (
           <div className="ml-auto flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 rounded-full px-3 py-1.5">
             <Sparkles className="w-3 h-3 text-emerald-500" />
             <span className="text-xs font-medium text-emerald-700">Live AI · {settings.provider}</span>

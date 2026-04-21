@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { X, Eye, EyeOff, Zap, Cloud, BrainCircuit, Monitor, Cpu, CheckCircle, AlertCircle, Loader2, FlaskConical } from 'lucide-react'
 import type { APISettings, AssistanceLevel, AIProvider } from '../types'
 import { ASSISTANCE_LEVELS } from '../utils/assistanceLevels'
-import { callLLM, hasValidKey, parseJSON } from '../services/llm/client'
+import { callLLM, hasValidKey, isLiveMode, parseJSON } from '../services/llm/client'
 
 interface Props {
   settings: APISettings
@@ -318,7 +318,7 @@ export default function Settings({ settings, onSave, onClose }: Props) {
             {local.provider !== 'demo' && (
               <button
                 onClick={handleTest}
-                disabled={!hasValidKey(local) || testStatus === 'loading'}
+                disabled={!isLiveMode(local) || testStatus === 'loading'}
                 className="btn-secondary text-sm flex items-center gap-2 disabled:opacity-40"
               >
                 {testStatus === 'loading' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}

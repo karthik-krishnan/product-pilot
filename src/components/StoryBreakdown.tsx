@@ -10,7 +10,7 @@ import { MOCK_EPIC_QUESTIONS, MOCK_STORY_LIST } from '../data/mockData'
 import { storyToMarkdown, copyToClipboard, exportStoriesToExcel } from '../utils/export'
 import JiraPushModal from './JiraPushModal'
 import { getQuestionCount } from '../utils/assistanceLevels'
-import { callLLM, hasValidKey } from '../services/llm/client'
+import { callLLM, isLiveMode } from '../services/llm/client'
 import { buildClarifyingQuestionsPrompt, parseClarifyingQuestions } from '../prompts/clarifyingQuestions'
 import { buildGenerateStoriesPrompt, parseStories } from '../prompts/generateStories'
 
@@ -120,7 +120,7 @@ function DiscoveryChat({ epic, settings, context, onComplete, onDismiss }: {
   }
 
   const startDiscovery = async () => {
-    if (hasValidKey(settings) && settings.assistanceLevel > 0) {
+    if (isLiveMode(settings) && settings.assistanceLevel > 0) {
       setLlmLoading(true)
       addMsg({ role: 'assistant', content: `Let me ask a few focused questions to help define precise stories for **"${epic.title}"**…` })
       try {
@@ -588,7 +588,7 @@ export default function StoryBreakdown({ epicId, epics, settings, context, story
     onAddStory?.(partial.epicId, newStory)
   }
 
-  const useLLM = hasValidKey(settings)
+  const useLLM = isLiveMode(settings)
   const questionCount = useRef(getQuestionCount(settings.assistanceLevel)).current
 
   const generateStories = async (questions: ClarifyingQuestion[]) => {
