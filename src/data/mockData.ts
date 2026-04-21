@@ -444,4 +444,36 @@ export const MOCK_INVEST_FIXES: Record<string, FixProposal> = {
       storyPoints: 5,
     },
   },
+
+  negotiable: {
+    principleKey: 'negotiable',
+    summary: 'Make the debounce duration configurable so implementation details stay open for discussion with the team.',
+    diffs: [
+      {
+        field: 'assumptions',
+        label: 'Assumptions',
+        before: ['Elasticsearch is provisioned and indexed', 'Product data indexed within 5 minutes of update'],
+        after: ['Elasticsearch is provisioned and indexed', 'Product data indexed within 5 minutes of update', 'Debounce duration (default 250ms) is configurable via backend feature flag — exact value to be agreed with UX'],
+      },
+    ],
+    patch: {
+      assumptions: ['Elasticsearch is provisioned and indexed', 'Product data indexed within 5 minutes of update', 'Debounce duration (default 250ms) is configurable via backend feature flag — exact value to be agreed with UX'],
+    },
+  },
+
+  testable: {
+    principleKey: 'testable',
+    summary: 'Clarify the 300ms criterion to specify server-side measurement so QA can write objective, automated tests.',
+    diffs: [
+      {
+        field: 'acceptanceCriteria',
+        label: 'Acceptance Criteria',
+        before: ['Results appear within 300ms of each keystroke', 'Auto-suggest shows top 5 results with thumbnail and price', 'Results ranked by relevance with popularity fallback', 'Zero-results page shows alternatives', 'Search query preserved in URL'],
+        after: ['Search API responds within 300ms at P95, measured server-side via APM tooling', 'Auto-suggest shows top 5 results with thumbnail and price', 'Results ranked by relevance with popularity fallback', 'Zero-results page shows alternatives', 'Search query preserved in URL'],
+      },
+    ],
+    patch: {
+      acceptanceCriteria: ['Search API responds within 300ms at P95, measured server-side via APM tooling', 'Auto-suggest shows top 5 results with thumbnail and price', 'Results ranked by relevance with popularity fallback', 'Zero-results page shows alternatives', 'Search query preserved in URL'],
+    },
+  },
 }

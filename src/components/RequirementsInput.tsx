@@ -2,7 +2,6 @@ import { useState, useRef, useEffect } from 'react'
 import { Send, SkipForward, Sparkles, MessageSquare, AlertCircle, Loader2 } from 'lucide-react'
 import type { APISettings, ContextCapture, ClarifyingQuestion, ChatMessage, Epic } from '../types'
 import ChatBubble, { TypingIndicator } from './ChatBubble'
-import { MOCK_CLARIFYING_QUESTIONS, MOCK_EPICS } from '../data/mockData'
 import { getQuestionCount } from '../utils/assistanceLevels'
 import { callLLM, isLiveMode } from '../services/llm/client'
 import { buildClarifyingQuestionsPrompt, parseClarifyingQuestions } from '../prompts/clarifyingQuestions'
@@ -41,7 +40,6 @@ export default function RequirementsInput({
   const bottomRef = useRef<HTMLDivElement>(null)
   const questionsRef = useRef<ClarifyingQuestion[]>([])
 
-  const useLLM = isLiveMode(settings)
   const questionCount = useRef(getQuestionCount(settings.assistanceLevel)).current
 
   useEffect(() => {
@@ -61,40 +59,28 @@ export default function RequirementsInput({
     onRequirementsChange(localReqs)
     setPhase('clarifying')
     setError(null)
-
-    if (useLLM && settings.assistanceLevel > 0) {
-      setLlmLoading(true)
-      addMessage({
-        role: 'assistant',
-        content: `Thanks — I've reviewed your requirements. Let me ask a few clarifying questions before writing your epics…`,
-      })
-      try {
-        const raw = await callLLM(
-          buildClarifyingQuestionsPrompt(localReqs, context, questionCount),
-          settings,
-          [...context.domainFiles, ...context.techFiles],
-        )
-        const qs = parseClarifyingQuestions(raw)
-        questionsRef.current = qs
-        setLlmLoading(false)
-        simulateTyping(() => {
-          addMessage({ role: 'assistant', content: qs[0].question, options: qs[0].options })
-        }, 400)
-      } catch (err) {
-        setLlmLoading(false)
-        setError((err as Error).message)
-        setPhase('input')
-      }
-    } else {
-      questionsRef.current = MOCK_CLARIFYING_QUESTIONS.slice(0, questionCount)
-      addMessage({
-        role: 'assistant',
-        content: `Thanks — I've reviewed your requirements. I have a few clarifying questions to make sure the output is as precise as possible.`,
-      })
+    setLlmLoading(true)
+    addMessage({
+      role: 'assistant',
+      content: `Thanks — I've reviewed your requirements. Let me ask a few clarifying questions before writing your epics…`,
+    })
+    try {
+      const raw = await callLLM(
+        buildClarifyingQuestionsPrompt(localReqs, context, questionCount),
+        settings,
+        [...context.domainFiles, ...context.techFiles],
+        'clarifying-questions',
+      )
+      const qs = parseClarifyingQuestions(raw)
+      questionsRef.current = qs.slice(0, questionCount)
+      setLlmLoading(false)
       simulateTyping(() => {
-        const q = questionsRef.current[0]
-        addMessage({ role: 'assistant', content: q.question, options: q.options })
-      }, 800)
+        addMessage({ role: 'assistant', content: qs[0].question, options: qs[0].options })
+      }, 400)
+    } catch (err) {
+      setLlmLoading(false)
+      setError((err as Error).message)
+      setPhase('input')
     }
   }
 
@@ -148,17 +134,13 @@ export default function RequirementsInput({
     setLlmLoading(true)
     setError(null)
     try {
-      if (useLLM) {
-        const raw = await callLLM(
-          buildGenerateEpicsPrompt(localReqs, context, questions),
-          settings,
-          [...context.domainFiles, ...context.techFiles],
-        )
-        onGenerateEpics(parseEpics(raw))
-      } else {
-        await new Promise(r => setTimeout(r, 800))
-        onGenerateEpics(MOCK_EPICS)
-      }
+      const raw = await callLLM(
+        buildGenerateEpicsPrompt(localReqs, context, questions),
+        settings,
+        [...context.domainFiles, ...context.techFiles],
+        'generate-epics',
+      )
+      onGenerateEpics(parseEpics(raw))
     } catch (err) {
       setError((err as Error).message)
     } finally {
@@ -175,7 +157,7 @@ export default function RequirementsInput({
         <p className="text-sm text-gray-500 mt-1">
           Describe your high-level requirements. The AI will ask a few targeted questions before generating epics.
         </p>
-        {useLLM && (
+        {isLiveMode(settings) && (
           <span className="inline-flex items-center gap-1.5 mt-2 text-xs text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-full px-2.5 py-1">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
             Live AI — {settings.provider}

@@ -6,7 +6,6 @@ import {
 } from 'lucide-react'
 import type { APISettings, ContextCapture, Epic, Story, ClarifyingQuestion, INVESTValidation } from '../types'
 import { ValidationSection } from './StoryValidation'
-import { MOCK_EPIC_QUESTIONS, MOCK_STORY_LIST } from '../data/mockData'
 import { storyToMarkdown, copyToClipboard, exportStoriesToExcel } from '../utils/export'
 import JiraPushModal from './JiraPushModal'
 import { getQuestionCount } from '../utils/assistanceLevels'
@@ -120,24 +119,22 @@ function DiscoveryChat({ epic, settings, context, onComplete, onDismiss }: {
   }
 
   const startDiscovery = async () => {
-    if (isLiveMode(settings) && settings.assistanceLevel > 0) {
-      setLlmLoading(true)
-      addMsg({ role: 'assistant', content: `Let me ask a few focused questions to help define precise stories for **"${epic.title}"**…` })
-      try {
-        const raw = await callLLM(buildClarifyingQuestionsPrompt(`Epic: ${epic.title}\n${epic.description}`, context, questionCount), settings)
-        const qs = parseClarifyingQuestions(raw)
-        questionsRef.current = qs
-        setLlmLoading(false)
-        simulateTyping(() => addMsg({ role: 'assistant', content: qs[0].question, options: qs[0].options }), 300)
-      } catch (err) {
-        setLlmLoading(false)
-        addMsg({ role: 'assistant', content: `Sorry, I couldn't connect to the AI. Check your API key in Settings, then try again.` })
-      }
-    } else {
-      questionsRef.current = MOCK_EPIC_QUESTIONS.slice(0, questionCount)
-      const qs = questionsRef.current
-      addMsg({ role: 'assistant', content: `I have a few questions to help define stories for **"${epic.title}"**.` })
-      simulateTyping(() => addMsg({ role: 'assistant', content: qs[0].question, options: qs[0].options }))
+    setLlmLoading(true)
+    addMsg({ role: 'assistant', content: `Let me ask a few focused questions to help define precise stories for **"${epic.title}"**…` })
+    try {
+      const raw = await callLLM(
+        buildClarifyingQuestionsPrompt(`Epic: ${epic.title}\n${epic.description}`, context, questionCount),
+        settings,
+        [],
+        'epic-clarifying-questions',
+      )
+      const qs = parseClarifyingQuestions(raw)
+      questionsRef.current = qs.slice(0, questionCount)
+      setLlmLoading(false)
+      simulateTyping(() => addMsg({ role: 'assistant', content: qs[0].question, options: qs[0].options }), 300)
+    } catch (err) {
+      setLlmLoading(false)
+      addMsg({ role: 'assistant', content: `Sorry, I couldn't connect to the AI. Check your API key in Settings, then try again.` })
     }
   }
 
@@ -588,21 +585,19 @@ export default function StoryBreakdown({ epicId, epics, settings, context, story
     onAddStory?.(partial.epicId, newStory)
   }
 
-  const useLLM = isLiveMode(settings)
   const questionCount = useRef(getQuestionCount(settings.assistanceLevel)).current
 
   const generateStories = async (questions: ClarifyingQuestion[]) => {
     setPhase('generating')
     setError(null)
     try {
-      let generated: Story[]
-      if (useLLM) {
-        const raw = await callLLM(buildGenerateStoriesPrompt(epic, context, questions), settings)
-        generated = parseStories(raw, epic.id)
-      } else {
-        await new Promise(r => setTimeout(r, 1500))
-        generated = MOCK_STORY_LIST.map(s => ({ ...s, epicId: epic.id }))
-      }
+      const raw = await callLLM(
+        buildGenerateStoriesPrompt(epic, context, questions),
+        settings,
+        [],
+        'generate-stories',
+      )
+      const generated = parseStories(raw, epic.id)
       setStories(generated)
       setLocalStories(generated)
       setPhase('done')
@@ -624,7 +619,7 @@ export default function StoryBreakdown({ epicId, epics, settings, context, story
       </div>
 
       {/* Epic */}
-      <EpicHeader epic={epic} isLive={useLLM} />
+      <EpicHeader epic={epic} isLive={isLiveMode(settings)} />
 
       {/* Error banner */}
       {error && (
@@ -681,7 +676,7 @@ export default function StoryBreakdown({ epicId, epics, settings, context, story
       {phase === 'generating' && (
         <div className="card p-10 mt-4 flex flex-col items-center gap-3 animate-fade-in-up">
           <Loader2 className="w-8 h-8 text-brand-400 animate-spin" />
-          <p className="text-sm text-gray-500">{useLLM ? 'AI is generating stories…' : 'Generating sample stories…'}</p>
+          <p className="text-sm text-gray-500">AI is generating stories…</p>
         </div>
       )}
 

@@ -5,8 +5,8 @@ import {
   GitBranch, Loader2, Wand2, Zap
 } from 'lucide-react'
 import type { APISettings, Story, INVESTValidation, FixProposal, FieldDiff } from '../types'
-import { MOCK_INVEST_VALIDATION, MOCK_STORY_LIST, MOCK_INVEST_FIXES } from '../data/mockData'
-import { callLLM, hasValidKey, isDemo, isLiveMode } from '../services/llm/client'
+import { MOCK_STORY_LIST, MOCK_INVEST_FIXES } from '../data/mockData'
+import { callLLM, isDemo, isLiveMode } from '../services/llm/client'
 import { buildValidateINVESTPrompt, parseINVESTValidation } from '../prompts/validateINVEST'
 import { buildFixINVESTPrompt, parseFixProposal } from '../prompts/fixINVEST'
 
@@ -80,18 +80,17 @@ function DiffBlock({ diff }: { diff: FieldDiff }) {
 interface INVESTRowProps {
   principleKey: INVESTKey
   item: INVESTValidation[INVESTKey]
-  fix?: FixProposal
   accepted: boolean
   settings: APISettings
   story: Story
   onAcceptFix: (patch: Partial<Story>, newStory?: Omit<Story, 'id'>) => void
 }
 
-function INVESTRow({ principleKey, item, fix: initialFix, accepted, settings, story, onAcceptFix }: INVESTRowProps) {
+function INVESTRow({ principleKey, item, accepted, settings, story, onAcceptFix }: INVESTRowProps) {
   const [suggestionsExpanded, setSuggestionsExpanded] = useState(false)
   const [fixOpen, setFixOpen]   = useState(false)
   const [loading, setLoading]   = useState(false)
-  const [liveFix, setLiveFix]   = useState<FixProposal | undefined>(initialFix)
+  const [liveFix, setLiveFix]   = useState<FixProposal | undefined>()
   const [fixError, setFixError] = useState<string | null>(null)
   const meta = INVEST_META[principleKey]
   const fix  = liveFix
@@ -100,18 +99,17 @@ function INVESTRow({ principleKey, item, fix: initialFix, accepted, settings, st
     if (fixOpen) { setFixOpen(false); return }
     setLoading(true)
     setFixError(null)
-    if (isLiveMode(settings)) {
-      try {
-        const raw = await callLLM(buildFixINVESTPrompt(story, principleKey, meta.label, item), settings)
-        setLiveFix(parseFixProposal(raw))
-        setFixOpen(true)
-      } catch (err) {
-        setFixError((err as Error).message)
-        if (initialFix) { setLiveFix(initialFix); setFixOpen(true) }
-      }
-    } else {
-      await new Promise(r => setTimeout(r, 1000))
+    try {
+      const raw = await callLLM(
+        buildFixINVESTPrompt(story, principleKey, meta.label, item),
+        settings,
+        [],
+        `fix-invest:${principleKey}`,
+      )
+      setLiveFix(parseFixProposal(raw))
       setFixOpen(true)
+    } catch (err) {
+      setFixError((err as Error).message)
     }
     setLoading(false)
   }
@@ -167,7 +165,7 @@ function INVESTRow({ principleKey, item, fix: initialFix, accepted, settings, st
                 {item.suggestions.length} suggestion{item.suggestions.length > 1 ? 's' : ''}
               </button>
             )}
-            {(isLiveMode(settings) || fix) && !accepted && (!item.adheres || item.suggestions.length > 0) && (
+            {!accepted && (!item.adheres || item.suggestions.length > 0) && (
               <button
                 onClick={handleFixClick}
                 disabled={loading}
@@ -380,7 +378,7 @@ export function ValidationSection({
     setValidating(true)
     setValidateError(null)
     try {
-      const raw = await callLLM(buildValidateINVESTPrompt(story), settings)
+      const raw = await callLLM(buildValidateINVESTPrompt(story), settings, [], 'validate-invest')
       onValidated(parseINVESTValidation(raw))
     } catch (err) {
       setValidateError((err as Error).message)
@@ -389,20 +387,19 @@ export function ValidationSection({
     }
   }
 
-  // Auto-validate on first mount if not yet validated and key is present
+  // Auto-validate on first mount for all modes (demo provider returns canned data)
   useEffect(() => {
-    if (validation === null && isLiveMode(settings)) {
+    if (validation === null) {
       runValidation()
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const isReal = validation !== null
-  // Only show mock data in demo mode (no key). With a key, wait for the real result.
-  const displayValidation = validation ?? (isDemo(settings) ? MOCK_INVEST_VALIDATION : null)
+  const displayValidation = validation
 
-  const failingKeys   = displayValidation ? INVEST_KEYS.filter(k => !displayValidation[k].adheres && MOCK_INVEST_FIXES[k]) : []
-  const pendingFixes  = failingKeys.filter(k => !acceptedKeys.has(k))
+  // For demo Fix All: only principles with mock patches available
+  const demoFixKeys  = displayValidation ? INVEST_KEYS.filter(k => !displayValidation[k].adheres && MOCK_INVEST_FIXES[k]) : []
+  const pendingFixes = demoFixKeys.filter(k => !acceptedKeys.has(k))
   const adheringCount = displayValidation ? INVEST_KEYS.filter(k => displayValidation[k].adheres || acceptedKeys.has(k)).length : 0
   const overallScore  = displayValidation ? Math.round(
     INVEST_KEYS.reduce((sum, k) => {
@@ -434,35 +431,29 @@ export function ValidationSection({
     <div className="mt-4 pt-4 border-t border-gray-100 space-y-4">
       {/* Status bar */}
       <div className={`flex items-center gap-3 rounded-xl px-4 py-3 border ${
-        validating          ? 'bg-brand-50 border-brand-200'
-        : isReal            ? 'bg-emerald-50 border-emerald-200'
-        : isLiveMode(settings) ? 'bg-brand-50 border-brand-200'
-        :                     'bg-gray-50 border-gray-200'
+        validating        ? 'bg-brand-50 border-brand-200'
+        : validation !== null ? 'bg-emerald-50 border-emerald-200'
+        :                   'bg-brand-50 border-brand-200'
       }`}>
         {validating ? (
           <>
             <Loader2 className="w-3.5 h-3.5 animate-spin text-brand-500 shrink-0" />
             <p className="text-xs text-brand-600 flex-1">Validating against INVEST principles with AI…</p>
           </>
-        ) : isReal ? (
+        ) : validation !== null ? (
           <>
             <CheckCircle className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-            <p className="text-xs text-emerald-700 flex-1">Validated by AI · {settings.provider}</p>
+            <p className="text-xs text-emerald-700 flex-1">
+              {isDemo(settings) ? 'Sample validation — demo mode' : `Validated by AI · ${settings.provider}`}
+            </p>
             <button onClick={runValidation} className="text-xs text-emerald-600 hover:text-emerald-800 underline shrink-0">
               Re-validate
             </button>
           </>
-        ) : isLiveMode(settings) ? (
-          <>
-            <Loader2 className="w-3.5 h-3.5 animate-spin text-brand-400 shrink-0" />
-            <p className="text-xs text-brand-600 flex-1">Connecting to AI…</p>
-          </>
         ) : (
           <>
-            <AlertCircle className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-            <p className="text-xs text-gray-500 flex-1">
-              Demo mode — showing sample data. Add an API key in <strong>Settings</strong> to validate with AI.
-            </p>
+            <Loader2 className="w-3.5 h-3.5 animate-spin text-brand-400 shrink-0" />
+            <p className="text-xs text-brand-600 flex-1">Initialising validation…</p>
           </>
         )}
       </div>
@@ -497,7 +488,7 @@ export function ValidationSection({
               </div>
               <p className="text-xs text-gray-400 mt-0.5">Need Work</p>
             </div>
-            {pendingFixes.length > 1 && (
+            {isDemo(settings) && pendingFixes.length > 1 && (
               <button
                 onClick={fixAll}
                 disabled={fixAllLoading}
@@ -530,7 +521,6 @@ export function ValidationSection({
                       key={key}
                       principleKey={key}
                       item={displayValidation[key]}
-                      fix={MOCK_INVEST_FIXES[key]}
                       accepted={acceptedKeys.has(key)}
                       settings={settings}
                       story={story}
@@ -623,7 +613,7 @@ function StoryAccordionItem({
         <div className="px-4 pb-5 border-t border-gray-100 animate-fade-in-up">
           <StoryContent story={story} />
           <ValidationSection
-            key={`${story.id}-${isLiveMode(settings)}`}
+            key={story.id}
             story={story}
             settings={settings}
             validation={validation}
