@@ -2,11 +2,13 @@ import { useState, useRef, useEffect } from 'react'
 import {
   BookMarked, ChevronDown, ChevronUp, Send, SkipForward, Sparkles,
   CheckCircle, AlertCircle, Loader2, ShieldCheck, Tag, RefreshCw,
-  MessageSquare, FileText, X,
+  MessageSquare, FileText, X, Copy, Download, Check as CheckIcon, Upload,
 } from 'lucide-react'
 import type { APISettings, ContextCapture, Epic, Story, ClarifyingQuestion, INVESTValidation } from '../types'
 import { ValidationSection } from './StoryValidation'
 import { MOCK_EPIC_QUESTIONS, MOCK_STORY_LIST } from '../data/mockData'
+import { storyToMarkdown, copyToClipboard, exportStoriesToExcel } from '../utils/export'
+import JiraPushModal from './JiraPushModal'
 import { getQuestionCount } from '../utils/assistanceLevels'
 import { callLLM, hasValidKey } from '../services/llm/client'
 import { buildClarifyingQuestionsPrompt, parseClarifyingQuestions } from '../prompts/clarifyingQuestions'
@@ -413,6 +415,24 @@ function StoryDiscussPanel({ story }: { story: Story }) {
 
 // ─── StoryAccordionItem ───────────────────────────────────────────────────────
 
+function CopyMarkdownButton({ story }: { story: Story }) {
+  const [copied, setCopied] = useState(false)
+  const handleCopy = () => {
+    copyToClipboard(storyToMarkdown(story))
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+  return (
+    <button
+      onClick={handleCopy}
+      className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border bg-white text-gray-600 border-gray-200 hover:bg-gray-50 transition-all"
+    >
+      {copied ? <CheckIcon className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+      {copied ? 'Copied!' : 'Copy MD'}
+    </button>
+  )
+}
+
 function StoryAccordionItem({ story, defaultOpen, settings, validation, acceptedKeys, onValidated, onFixAccepted, onStoryChange, onAddStory }: {
   story: Story
   defaultOpen: boolean
@@ -427,6 +447,7 @@ function StoryAccordionItem({ story, defaultOpen, settings, validation, accepted
   const [expanded, setExpanded]         = useState(defaultOpen)
   const [discussing, setDiscussing]     = useState(false)
   const [showValidation, setShowValidation] = useState(false)
+  const [showJira, setShowJira]         = useState(false)
 
   return (
     <div className={`card overflow-hidden transition-all ${expanded ? 'border-brand-200 shadow-sm' : ''}`}>
@@ -482,7 +503,7 @@ function StoryAccordionItem({ story, defaultOpen, settings, validation, accepted
         <div className="px-4 pb-5 border-t border-gray-100 animate-fade-in-up">
           <StoryContent story={story} />
 
-          <div className="flex gap-2 mt-2 pt-4 border-t border-gray-100">
+          <div className="flex flex-wrap gap-2 mt-2 pt-4 border-t border-gray-100">
             <button
               onClick={() => setDiscussing(!discussing)}
               className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border transition-all ${
@@ -505,9 +526,24 @@ function StoryAccordionItem({ story, defaultOpen, settings, validation, accepted
               <ShieldCheck className="w-3.5 h-3.5" />
               {showValidation ? 'Hide Validation' : validation ? 'View Validation' : 'Validate (INVEST)'}
             </button>
+            <CopyMarkdownButton story={story} />
+            <button
+              onClick={() => setShowJira(true)}
+              className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition-colors"
+            >
+              <Upload className="w-3.5 h-3.5" />
+              Push to Jira
+            </button>
           </div>
 
           {discussing && <StoryDiscussPanel story={story} />}
+
+          {showJira && (
+            <JiraPushModal
+              items={[{ id: story.id, title: story.title, type: 'Story' }]}
+              onClose={() => setShowJira(false)}
+            />
+          )}
 
           {showValidation && (
             <ValidationSection
@@ -542,6 +578,7 @@ export default function StoryBreakdown({ epicId, epics, settings, context, story
   const [storyVersions, setStoryVersions] = useState<Record<string, Story>>({})
   const [localStories, setLocalStories]   = useState<Story[]>(existingStories)
   const [error, setError]   = useState<string | null>(null)
+  const [showJira, setShowJira] = useState(false)
 
   const getStory = (s: Story) => storyVersions[s.id] || s
 
@@ -658,13 +695,29 @@ export default function StoryBreakdown({ epicId, epics, settings, context, story
                 {stories.length} {stories.length === 1 ? 'Story' : 'Stories'}
               </span>
             </div>
-            <button
-              onClick={() => { setStories([]); setPhase('input') }}
-              className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-700 border border-gray-200 bg-white rounded-lg px-3 py-1.5 hover:bg-gray-50 transition-colors"
-            >
-              <RefreshCw className="w-3 h-3" />
-              Regenerate
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => exportStoriesToExcel(localStories.map(s => getStory(s)), epic?.title)}
+                className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition-colors"
+              >
+                <Download className="w-3.5 h-3.5" />
+                Export Excel
+              </button>
+              <button
+                onClick={() => setShowJira(true)}
+                className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition-colors"
+              >
+                <Upload className="w-3.5 h-3.5" />
+                Push to Jira
+              </button>
+              <button
+                onClick={() => { setStories([]); setPhase('input') }}
+                className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-700 border border-gray-200 bg-white rounded-lg px-3 py-1.5 hover:bg-gray-50 transition-colors"
+              >
+                <RefreshCw className="w-3 h-3" />
+                Regenerate
+              </button>
+            </div>
           </div>
 
           <div className="space-y-3">
@@ -685,6 +738,13 @@ export default function StoryBreakdown({ epicId, epics, settings, context, story
           </div>
 
         </div>
+      )}
+
+      {showJira && (
+        <JiraPushModal
+          items={localStories.map(s => ({ id: s.id, title: getStory(s).title, type: 'Story' as const }))}
+          onClose={() => setShowJira(false)}
+        />
       )}
     </div>
   )

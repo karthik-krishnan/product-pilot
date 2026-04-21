@@ -1,6 +1,6 @@
-# RequireAI — AI-Powered Requirements Studio
+# ProductPilot — AI-Powered Requirements Studio
 
-RequireAI transforms raw product ideas into structured agile artefacts using large language models. It guides teams through a four-step workflow — from high-level context capture to fully validated, INVEST-compliant user stories — with real-time AI assistance at every stage.
+ProductPilot transforms raw product ideas into structured agile artefacts using large language models. It guides teams through a four-step workflow — from high-level context capture to fully validated, INVEST-compliant user stories — with real-time AI assistance at every stage.
 
 ---
 
@@ -61,8 +61,8 @@ Open [http://localhost:5173](http://localhost:5173). The app works in demo mode 
 ### Build and run
 
 ```bash
-docker build -t requireai .
-docker run -p 8080:80 requireai
+docker build -t productpilot .
+docker run -p 8080:80 productpilot
 ```
 
 Open [http://localhost:8080](http://localhost:8080).
@@ -71,7 +71,7 @@ Open [http://localhost:8080](http://localhost:8080).
 
 ```yaml
 services:
-  requireai:
+  productpilot:
     build: .
     ports:
       - "8080:80"
@@ -98,7 +98,7 @@ The included GitHub Actions workflow (`.github/workflows/docker.yml`) builds and
 | `DOCKERHUB_USERNAME` | your Docker Hub username     |
 | `DOCKERHUB_TOKEN`    | the access token you created |
 
-Push to `main` → image published as `<username>/requireai:latest`.
+Push to `main` → image published as `<username>/productpilot:latest`.
 
 ### Alternative registries
 
@@ -123,7 +123,7 @@ Use the **Test Connection** button to verify your credentials before running the
 To reset to demo mode, open Settings and clear your API key, or run this in the browser console:
 
 ```js
-localStorage.removeItem('requireai_settings')
+localStorage.removeItem('productpilot_settings')
 ```
 
 > **Browser CORS note:** LLM calls go directly from the browser to the provider API. Anthropic is supported via the `anthropic-dangerous-direct-browser-access` header. For providers that block browser cross-origin requests, run a local proxy or use Ollama.

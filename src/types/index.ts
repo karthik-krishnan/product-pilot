@@ -29,6 +29,9 @@ export interface UploadedFile {
   name: string
   size: number
   type: string
+  content?: string                       // plain text (TXT/MD) or base64 (PDF)
+  contentType?: 'text' | 'pdf' | 'unsupported'
+  loading?: boolean
 }
 
 export interface ChatMessage {

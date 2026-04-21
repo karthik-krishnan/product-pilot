@@ -27,7 +27,7 @@ const PROVIDER_LABELS: Record<string, string> = {
   ollama:         'Ollama (Local)',
 }
 
-const SETTINGS_KEY = 'requireai_settings'
+const SETTINGS_KEY = 'productpilot_settings'
 
 function loadSettings(): APISettings {
   try {
@@ -147,8 +147,8 @@ export default function App() {
               <Sparkles className="w-4 h-4 text-white" />
             </div>
             <div>
-              <p className="text-sm font-bold text-gray-900">RequireAI</p>
-              <p className="text-xs text-gray-400">Requirements Studio</p>
+              <p className="text-sm font-bold text-gray-900">ProductPilot</p>
+              <p className="text-xs text-gray-400">Product Backlog Assistant</p>
             </div>
           </div>
           <button onClick={() => setSidebarOpen(false)} className="lg:hidden absolute top-4 right-4 text-gray-400 hover:text-gray-600">
@@ -219,7 +219,7 @@ export default function App() {
             <div className="w-6 h-6 rounded-lg bg-brand-600 flex items-center justify-center">
               <Sparkles className="w-3 h-3 text-white" />
             </div>
-            <span className="text-sm font-semibold text-gray-800">RequireAI</span>
+            <span className="text-sm font-semibold text-gray-800">ProductPilot</span>
           </div>
           <button onClick={() => setSettingsOpen(true)} className="ml-auto text-gray-400 hover:text-gray-600">
             <SettingsIcon className="w-4 h-4" />
@@ -228,7 +228,7 @@ export default function App() {
 
         <div className="px-2 lg:px-4">
           {state.currentStep === 'context' && (
-            <ContextCaptureComponent context={state.context} onSave={handleContextSave} />
+            <ContextCaptureComponent context={state.context} settings={state.settings} onSave={handleContextSave} />
           )}
           {state.currentStep === 'requirements' && (
             <RequirementsInput

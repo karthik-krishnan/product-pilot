@@ -72,6 +72,7 @@ export default function RequirementsInput({
         const raw = await callLLM(
           buildClarifyingQuestionsPrompt(localReqs, context, questionCount),
           settings,
+          [...context.domainFiles, ...context.techFiles],
         )
         const qs = parseClarifyingQuestions(raw)
         questionsRef.current = qs
@@ -151,6 +152,7 @@ export default function RequirementsInput({
         const raw = await callLLM(
           buildGenerateEpicsPrompt(localReqs, context, questions),
           settings,
+          [...context.domainFiles, ...context.techFiles],
         )
         onGenerateEpics(parseEpics(raw))
       } else {
