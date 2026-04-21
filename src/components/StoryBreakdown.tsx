@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import {
   BookMarked, ChevronDown, ChevronUp, Send, SkipForward, Sparkles,
   CheckCircle, AlertCircle, Loader2, ShieldCheck, Tag, RefreshCw,
-  MessageSquare, FileText, X, Copy, Download, Check as CheckIcon, Upload,
+  MessageSquare, FileText, X, Copy, Download, Check as CheckIcon, Upload, Edit3, Save,
 } from 'lucide-react'
 import type { APISettings, ContextCapture, Epic, Story, ClarifyingQuestion, INVESTValidation } from '../types'
 import { ValidationSection } from './StoryValidation'
@@ -410,6 +410,55 @@ function StoryDiscussPanel({ story }: { story: Story }) {
   )
 }
 
+// ─── EditableList ─────────────────────────────────────────────────────────────
+
+type ListField = 'acceptanceCriteria' | 'inScope' | 'outOfScope' | 'assumptions' | 'crossFunctionalNeeds'
+
+function EditableList({ label, field, draft, setDraft, storyId }: {
+  label: string
+  field: ListField
+  draft: Story
+  setDraft: React.Dispatch<React.SetStateAction<Story>>
+  storyId: string
+}) {
+  const items = draft[field] as string[]
+  const fieldId = `${storyId}-${field}`
+  return (
+    <div>
+      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">{label}</p>
+      <div className="space-y-1.5">
+        {items.map((item, i) => (
+          <div key={i} className="flex gap-2 items-start">
+            <span className="text-xs text-gray-400 pt-2 w-5 shrink-0">{i + 1}.</span>
+            <textarea
+              aria-label={`${label} item ${i + 1}`}
+              rows={2}
+              className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-brand-400 resize-none"
+              value={item}
+              onChange={e => setDraft(d => ({ ...d, [field]: (d[field] as string[]).map((x, j) => j === i ? e.target.value : x) }))}
+            />
+            <button
+              aria-label={`Remove ${label} item ${i + 1}`}
+              onClick={() => setDraft(d => ({ ...d, [field]: (d[field] as string[]).filter((_, j) => j !== i) }))}
+              className="text-gray-300 hover:text-red-400 pt-2"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        ))}
+        <button
+          id={`${fieldId}-add`}
+          aria-label={`Add ${label} item`}
+          onClick={() => setDraft(d => ({ ...d, [field]: [...(d[field] as string[]), ''] }))}
+          className="text-xs text-brand-600 hover:text-brand-700 font-medium"
+        >
+          + Add {label === 'Acceptance Criteria' ? 'criterion' : 'item'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 // ─── StoryAccordionItem ───────────────────────────────────────────────────────
 
 function CopyMarkdownButton({ story }: { story: Story }) {
@@ -441,10 +490,17 @@ function StoryAccordionItem({ story, defaultOpen, settings, validation, accepted
   onStoryChange: (s: Story) => void
   onAddStory: (s: Omit<Story, 'id'>) => void
 }) {
-  const [expanded, setExpanded]         = useState(defaultOpen)
-  const [discussing, setDiscussing]     = useState(false)
+  const [expanded, setExpanded]             = useState(defaultOpen)
+  const [discussing, setDiscussing]         = useState(false)
   const [showValidation, setShowValidation] = useState(false)
-  const [showJira, setShowJira]         = useState(false)
+  const [showJira, setShowJira]             = useState(false)
+  const [editing, setEditing]               = useState(false)
+  const [draft, setDraft]                   = useState(story)
+
+  useEffect(() => { if (!editing) setDraft(story) }, [story, editing])
+
+  const handleSave = () => { onStoryChange(draft); setEditing(false) }
+  const handleDiscard = () => { setDraft(story); setEditing(false) }
 
   return (
     <div className={`card overflow-hidden transition-all ${expanded ? 'border-brand-200 shadow-sm' : ''}`}>
@@ -498,51 +554,151 @@ function StoryAccordionItem({ story, defaultOpen, settings, validation, accepted
 
       {expanded && (
         <div className="px-4 pb-5 border-t border-gray-100 animate-fade-in-up">
-          <StoryContent story={story} />
+
+          {editing ? (
+            <div className="space-y-3 py-3">
+              <div>
+                <label htmlFor={`${story.id}-title`} className="text-xs font-medium text-gray-500 uppercase tracking-wide">Title</label>
+                <input
+                  id={`${story.id}-title`}
+                  className="mt-1 w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-400"
+                  value={draft.title}
+                  onChange={e => setDraft(d => ({ ...d, title: e.target.value }))}
+                />
+              </div>
+              <div className="flex gap-3">
+                <div className="flex-1">
+                  <label htmlFor={`${story.id}-priority`} className="text-xs font-medium text-gray-500 uppercase tracking-wide">Priority</label>
+                  <select
+                    id={`${story.id}-priority`}
+                    className="mt-1 w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-400"
+                    value={draft.priority}
+                    onChange={e => setDraft(d => ({ ...d, priority: e.target.value as Story['priority'] }))}
+                  >
+                    {(['Critical','High','Medium','Low'] as const).map(p => <option key={p}>{p}</option>)}
+                  </select>
+                </div>
+                <div className="w-28">
+                  <label htmlFor={`${story.id}-points`} className="text-xs font-medium text-gray-500 uppercase tracking-wide">Points</label>
+                  <input
+                    id={`${story.id}-points`}
+                    type="number" min={1} max={21}
+                    className="mt-1 w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-400"
+                    value={draft.storyPoints ?? ''}
+                    onChange={e => setDraft(d => ({ ...d, storyPoints: e.target.value ? Number(e.target.value) : undefined }))}
+                  />
+                </div>
+              </div>
+              <div>
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Story</p>
+                <div className="rounded-lg border border-gray-200 divide-y divide-gray-100 overflow-hidden text-sm">
+                  <div className="flex items-start gap-2 px-3 py-2">
+                    <span className="text-gray-400 shrink-0 pt-0.5 w-16 text-right">As a</span>
+                    <textarea
+                      id={`${story.id}-asa`}
+                      aria-label="As a"
+                      rows={1}
+                      className="flex-1 resize-none focus:outline-none focus:ring-0 bg-transparent"
+                      value={draft.asA}
+                      onChange={e => setDraft(d => ({ ...d, asA: e.target.value }))}
+                    />
+                  </div>
+                  <div className="flex items-start gap-2 px-3 py-2">
+                    <span className="text-gray-400 shrink-0 pt-0.5 w-16 text-right">I want to</span>
+                    <textarea
+                      id={`${story.id}-iwantto`}
+                      aria-label="I want to"
+                      rows={2}
+                      className="flex-1 resize-none focus:outline-none focus:ring-0 bg-transparent"
+                      value={draft.iWantTo}
+                      onChange={e => setDraft(d => ({ ...d, iWantTo: e.target.value }))}
+                    />
+                  </div>
+                  <div className="flex items-start gap-2 px-3 py-2">
+                    <span className="text-gray-400 shrink-0 pt-0.5 w-16 text-right">so that</span>
+                    <textarea
+                      id={`${story.id}-sothat`}
+                      aria-label="So that"
+                      rows={2}
+                      className="flex-1 resize-none focus:outline-none focus:ring-0 bg-transparent"
+                      value={draft.soThat}
+                      onChange={e => setDraft(d => ({ ...d, soThat: e.target.value }))}
+                    />
+                  </div>
+                </div>
+              </div>
+              <EditableList label="Acceptance Criteria" field="acceptanceCriteria" draft={draft} setDraft={setDraft} storyId={story.id} />
+              <EditableList label="In Scope" field="inScope" draft={draft} setDraft={setDraft} storyId={story.id} />
+              <EditableList label="Out of Scope" field="outOfScope" draft={draft} setDraft={setDraft} storyId={story.id} />
+              <EditableList label="Assumptions" field="assumptions" draft={draft} setDraft={setDraft} storyId={story.id} />
+              <EditableList label="Cross-Functional Needs" field="crossFunctionalNeeds" draft={draft} setDraft={setDraft} storyId={story.id} />
+            </div>
+          ) : (
+            <StoryContent story={story} />
+          )}
 
           <div className="flex flex-wrap gap-2 mt-2 pt-4 border-t border-gray-100">
-            <button
-              onClick={() => setDiscussing(!discussing)}
-              className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border transition-all ${
-                discussing
-                  ? 'bg-gray-100 text-gray-700 border-gray-300'
-                  : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
-              }`}
-            >
-              <MessageSquare className="w-3.5 h-3.5" />
-              {discussing ? 'Hide chat' : 'Discuss'}
-            </button>
-            <button
-              onClick={() => setShowValidation(!showValidation)}
-              className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border transition-all ${
-                showValidation
-                  ? 'bg-brand-100 text-brand-700 border-brand-300'
-                  : 'btn-primary py-1.5'
-              }`}
-            >
-              <ShieldCheck className="w-3.5 h-3.5" />
-              {showValidation ? 'Hide Validation' : validation ? 'View Validation' : 'Validate (INVEST)'}
-            </button>
-            <CopyMarkdownButton story={story} />
-            <button
-              onClick={() => setShowJira(true)}
-              className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition-colors"
-            >
-              <Upload className="w-3.5 h-3.5" />
-              Push to Jira
-            </button>
+            {editing ? (
+              <>
+                <button onClick={handleSave}
+                  className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border bg-brand-600 text-white border-brand-600 hover:bg-brand-700 transition-colors">
+                  <Save className="w-3.5 h-3.5" /> Save
+                </button>
+                <button onClick={handleDiscard}
+                  className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border border-red-200 text-red-500 hover:bg-red-50 transition-colors">
+                  <X className="w-3.5 h-3.5" /> Discard
+                </button>
+              </>
+            ) : (
+              <>
+                <button onClick={() => setEditing(true)}
+                  className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition-colors">
+                  <Edit3 className="w-3.5 h-3.5" /> Edit
+                </button>
+                <button
+                  onClick={() => setDiscussing(!discussing)}
+                  className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border transition-all ${
+                    discussing
+                      ? 'bg-gray-100 text-gray-700 border-gray-300'
+                      : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+                  }`}
+                >
+                  <MessageSquare className="w-3.5 h-3.5" />
+                  {discussing ? 'Hide chat' : 'Discuss'}
+                </button>
+                <button
+                  onClick={() => setShowValidation(!showValidation)}
+                  className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border transition-all ${
+                    showValidation
+                      ? 'bg-brand-100 text-brand-700 border-brand-300'
+                      : 'btn-primary py-1.5'
+                  }`}
+                >
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  {showValidation ? 'Hide Validation' : validation ? 'View Validation' : 'Validate (INVEST)'}
+                </button>
+                <CopyMarkdownButton story={story} />
+                <button
+                  onClick={() => setShowJira(true)}
+                  className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition-colors"
+                >
+                  <Upload className="w-3.5 h-3.5" />
+                  Push to Jira
+                </button>
+              </>
+            )}
           </div>
 
-          {discussing && <StoryDiscussPanel story={story} />}
+          {discussing && !editing && <StoryDiscussPanel story={story} />}
 
-          {showJira && (
+          {!editing && showJira && (
             <JiraPushModal
               items={[{ id: story.id, title: story.title, type: 'Story' }]}
               onClose={() => setShowJira(false)}
             />
           )}
 
-          {showValidation && (
+          {!editing && showValidation && (
             <ValidationSection
               key={`${story.id}-${settings.provider}`}
               story={story}
