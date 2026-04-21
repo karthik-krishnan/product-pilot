@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { X, Eye, EyeOff, Zap, Cloud, BrainCircuit, Monitor, Cpu, CheckCircle, AlertCircle, Loader2 } from 'lucide-react'
+import { X, Eye, EyeOff, Zap, Cloud, BrainCircuit, Monitor, Cpu, CheckCircle, AlertCircle, Loader2, FlaskConical } from 'lucide-react'
 import type { APISettings, AssistanceLevel, AIProvider } from '../types'
 import { ASSISTANCE_LEVELS } from '../utils/assistanceLevels'
 import { callLLM, hasValidKey, parseJSON } from '../services/llm/client'
@@ -11,11 +11,12 @@ interface Props {
 }
 
 const PROVIDERS: { id: AIProvider; label: string; sub: string; icon: React.ComponentType<{ className?: string }> }[] = [
-  { id: 'anthropic',    label: 'Anthropic',    sub: 'Claude Sonnet / Opus',       icon: Zap },
+  { id: 'anthropic',    label: 'Anthropic',    sub: 'Claude Sonnet / Opus',        icon: Zap },
   { id: 'openai',       label: 'OpenAI',       sub: 'GPT-4o / GPT-4',             icon: BrainCircuit },
   { id: 'azure-openai', label: 'Azure OpenAI', sub: 'GPT-4o on Azure',            icon: Cloud },
   { id: 'google',       label: 'Google',       sub: 'Gemini 1.5 Pro / Flash',     icon: Cpu },
   { id: 'ollama',       label: 'Ollama',       sub: 'Local LLM — no key needed',  icon: Monitor },
+  { id: 'demo',         label: 'Demo',         sub: 'Sample data — no key needed', icon: FlaskConical },
 ]
 
 export default function Settings({ settings, onSave, onClose }: Props) {
@@ -97,6 +98,15 @@ export default function Settings({ settings, onSave, onClose }: Props) {
               ))}
             </div>
           </div>
+
+          {/* Demo */}
+          {local.provider === 'demo' && (
+            <div className="animate-fade-in-up">
+              <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-xs text-amber-700">
+                Running on pre-built sample data. No API key required — explore the full workflow with an example e-commerce backlog.
+              </div>
+            </div>
+          )}
 
           {/* Anthropic */}
           {local.provider === 'anthropic' && (
@@ -305,14 +315,17 @@ export default function Settings({ settings, onSave, onClose }: Props) {
             </div>
           )}
           <div className="flex items-center justify-between gap-2">
-            <button
-              onClick={handleTest}
-              disabled={!hasValidKey(local) || testStatus === 'loading'}
-              className="btn-secondary text-sm flex items-center gap-2 disabled:opacity-40"
-            >
-              {testStatus === 'loading' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}
-              Test Connection
-            </button>
+            {local.provider !== 'demo' && (
+              <button
+                onClick={handleTest}
+                disabled={!hasValidKey(local) || testStatus === 'loading'}
+                className="btn-secondary text-sm flex items-center gap-2 disabled:opacity-40"
+              >
+                {testStatus === 'loading' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}
+                Test Connection
+              </button>
+            )}
+            {local.provider === 'demo' && <div />}
             <div className="flex gap-2">
               <button onClick={onClose} className="btn-secondary text-sm">Cancel</button>
               <button onClick={handleSave} className="btn-primary text-sm">Save Settings</button>

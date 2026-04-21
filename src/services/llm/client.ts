@@ -19,6 +19,7 @@ export class LLMError extends Error {
 
 export function hasValidKey(settings: APISettings): boolean {
   switch (settings.provider) {
+    case 'demo':         return false
     case 'anthropic':    return !!settings.anthropicKey.trim()
     case 'openai':       return !!settings.openaiKey.trim()
     case 'azure-openai': return !!settings.azureKey.trim() && !!settings.azureEndpoint.trim() && !!settings.azureDeployment.trim()
@@ -41,6 +42,7 @@ export async function callLLM(
   files: UploadedFile[] = [],
 ): Promise<string> {
   switch (settings.provider) {
+    case 'demo':         throw new Error('Demo mode does not support live LLM calls')
     case 'anthropic':    return callAnthropic(messages, settings, files)
     case 'openai':       return callOpenAI(messages, settings, files)
     case 'azure-openai': return callAzureOpenAI(messages, settings, files)

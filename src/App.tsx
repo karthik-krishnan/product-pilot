@@ -38,7 +38,7 @@ function loadSettings(): APISettings {
 }
 
 const DEFAULT_SETTINGS: APISettings = {
-  provider: 'anthropic',
+  provider: 'demo',
   anthropicKey: '',
   openaiKey: '',
   openaiModel: 'gpt-4o',
