@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - feat/llm-backend
     tags:
       - 'v*'
   pull_request:
@@ -12,11 +11,15 @@ on:
       - main
 
 env:
-  IMAGE_NAME: productpilot
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository_owner }}/productpilot
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
 
     steps:
       - name: Checkout
@@ -25,44 +28,19 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # ── Docker Hub ────────────────────────────────────────────────────────
-      # Secrets needed: DOCKERHUB_USERNAME, DOCKERHUB_TOKEN
-      # Create a token at https://hub.docker.com/settings/security
-      - name: Log in to Docker Hub
+      - name: Log in to GitHub Container Registry
         if: github.event_name != 'pull_request'
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      # ── AWS ECR (alternative — uncomment and remove Docker Hub steps) ─────
-      # Secrets needed: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION, ECR_REPOSITORY
-      # - name: Configure AWS credentials
-      #   uses: aws-actions/configure-aws-credentials@v4
-      #   with:
-      #     aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      #     aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      #     aws-region: ${{ secrets.AWS_REGION }}
-      # - name: Log in to Amazon ECR
-      #   id: ecr-login
-      #   uses: aws-actions/amazon-ecr-login@v2
-
-      # ── GCP Artifact Registry (alternative) ──────────────────────────────
-      # Secrets needed: GCP_SA_KEY (service account JSON), GCP_PROJECT_ID, GCP_REGION
-      # - name: Log in to GCP Artifact Registry
-      #   uses: docker/login-action@v3
-      #   with:
-      #     registry: ${{ secrets.GCP_REGION }}-docker.pkg.dev
-      #     username: _json_key
-      #     password: ${{ secrets.GCP_SA_KEY }}
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Extract Docker metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}
-          # For ECR: ${{ steps.ecr-login.outputs.registry }}/${{ secrets.ECR_REPOSITORY }}
-          # For GCP: ${{ secrets.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.IMAGE_NAME }}/${{ env.IMAGE_NAME }}
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
             type=ref,event=branch
             type=semver,pattern={{version}}

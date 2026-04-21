@@ -7,7 +7,7 @@ ProductPilot is an AI-powered product backlog assistant that turns raw requireme
 ## Quickstart
 
 ```bash
-docker run -p 8080:80 karthik-krishnan/productpilot:latest
+docker run -p 8080:80 ghcr.io/karthik-krishnan/productpilot:latest
 ```
 
 Open [http://localhost:8080](http://localhost:8080), click **Settings** in the sidebar, add your API key, and start building your backlog.
@@ -102,7 +102,7 @@ Open [http://localhost:5173](http://localhost:5173).
 ### Run from Docker Hub
 
 ```bash
-docker run -p 8080:80 karthik-krishnan/productpilot:latest
+docker run -p 8080:80 ghcr.io/karthik-krishnan/productpilot:latest
 ```
 
 ### Build locally
@@ -117,7 +117,7 @@ docker run -p 8080:80 productpilot
 ```yaml
 services:
   productpilot:
-    image: karthik-krishnan/productpilot:latest
+    image: ghcr.io/karthik-krishnan/productpilot:latest
     ports:
       - "8080:80"
     restart: unless-stopped
@@ -131,16 +131,15 @@ docker compose up -d
 
 ## CI/CD
 
-The included GitHub Actions workflow (`.github/workflows/docker.yml`) builds and pushes the Docker image on every push to `main` or a version tag (`v*`).
+The included GitHub Actions workflow (`.github/workflows/docker.yml`) builds and pushes the Docker image to **GitHub Container Registry (ghcr.io)** on every push to `main` or a version tag (`v*`).
 
-Add two secrets in **GitHub → Settings → Secrets → Actions**:
+No secrets needed — the workflow uses the automatic `GITHUB_TOKEN`. The image is published as:
 
-| Secret | Value |
-|---|---|
-| `DOCKERHUB_USERNAME` | your Docker Hub username |
-| `DOCKERHUB_TOKEN` | access token from [hub.docker.com/settings/security](https://hub.docker.com/settings/security) |
+```
+ghcr.io/karthik-krishnan/productpilot:latest
+```
 
-The workflow also includes commented-out blocks for **AWS ECR** and **GCP Artifact Registry** as drop-in alternatives.
+Pull requests trigger a build-only run (no push) to catch Dockerfile errors early.
 
 ---
 
