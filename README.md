@@ -8,6 +8,24 @@ ProductPilot is an AI-powered product backlog assistant that turns raw requireme
 
 ---
 
+## Screenshots
+
+<table>
+<tr>
+<td><img src="docs/screenshots/01-context.png" width="420" alt="Context Setup"/><br/><sub><b>Context Setup</b> — paste or upload domain & tech docs to ground the AI</sub></td>
+<td><img src="docs/screenshots/03-epics.png" width="420" alt="Epics Grid"/><br/><sub><b>Epics Grid</b> — AI-generated, prioritised, categorised epics</sub></td>
+</tr>
+<tr>
+<td><img src="docs/screenshots/04-stories.png" width="420" alt="Story Cards"/><br/><sub><b>Story Cards</b> — detailed user stories with quality-score dot indicator</sub></td>
+<td><img src="docs/screenshots/05-validate.png" width="420" alt="Quality Validation"/><br/><sub><b>Quality Validation</b> — INVEST breakdown with per-principle AI fix proposals</sub></td>
+</tr>
+</table>
+
+<img src="docs/screenshots/06-all-stories.png" width="860" alt="All Stories Table"/>
+<sub><b>All Stories</b> — sortable, filterable cross-epic table for sprint planning</sub>
+
+---
+
 ## Quickstart
 
 ```bash

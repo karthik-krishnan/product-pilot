@@ -14,7 +14,7 @@ import AllStoriesView from './components/AllStoriesView'
 const NAV_STEPS: { id: AppStep; label: string; icon: React.ComponentType<{ className?: string }>; description: string }[] = [
   { id: 'context',      label: 'Context',         icon: BookOpen,   description: 'Domain & tech context' },
   { id: 'requirements', label: 'Requirements',    icon: FileText,   description: 'Intake & AI exploration' },
-  { id: 'epics',        label: 'Epics & Stories', icon: Layers,     description: 'Breakdown & validation' },
+  { id: 'epics',        label: 'Epics & Stories', icon: Layers,     description: 'Generate · validate · export' },
 ]
 
 const STEP_ORDER: AppStep[] = ['context', 'requirements', 'epics']
@@ -200,7 +200,7 @@ export default function App() {
                 </div>
                 <div className="min-w-0">
                   <p className={`text-xs font-semibold truncate ${active ? 'text-white' : ''}`}>{step.label}</p>
-                  <p className={`text-xs truncate ${active ? 'text-white/70' : 'text-gray-400'}`}>{step.description}</p>
+                  <p className={`text-xs leading-tight ${active ? 'text-white/70' : 'text-gray-400'}`}>{step.description}</p>
                 </div>
                 {active && <ChevronRight className="w-3.5 h-3.5 text-white/70 ml-auto shrink-0" />}
               </button>
