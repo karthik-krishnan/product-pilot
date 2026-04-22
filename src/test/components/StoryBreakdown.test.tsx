@@ -85,6 +85,7 @@ function renderBreakdown(story: Story = makeStory()) {
       context={context}
       storyValidations={{}}
       storyAcceptedFixes={{}}
+      onSelectEpic={vi.fn()}
       onStoriesGenerated={vi.fn()}
       onStoryValidated={vi.fn()}
       onFixAccepted={vi.fn()}

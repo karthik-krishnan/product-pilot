@@ -28,6 +28,48 @@ const PROVIDER_LABELS: Record<string, string> = {
   ollama:         'Ollama (Local)',
 }
 
+const PRIORITY_COLORS: Record<string, string> = {
+  High: 'bg-red-100 text-red-700',
+  Medium: 'bg-amber-100 text-amber-700',
+  Low: 'bg-green-100 text-green-700',
+}
+
+function EpicPicker({ epics, onSelect }: { epics: Epic[]; onSelect: (id: string) => void }) {
+  return (
+    <div className="max-w-4xl mx-auto py-10 px-4 animate-fade-in-up">
+      <div className="mb-8">
+        <h1 className="text-xl font-semibold text-gray-900">Story Breakdown</h1>
+        <p className="text-sm text-gray-500 mt-1">Select an epic to generate or review its user stories.</p>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {epics.map(epic => {
+          const storyCount = epic.stories?.length ?? 0
+          return (
+            <button
+              key={epic.id}
+              onClick={() => onSelect(epic.id)}
+              className="card p-4 text-left flex flex-col gap-3 hover:shadow-md hover:border-brand-200 transition-all"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className={`badge ${PRIORITY_COLORS[epic.priority]}`}>{epic.priority}</span>
+                {storyCount > 0
+                  ? <span className="text-xs text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-full px-2 py-0.5">{storyCount} stories</span>
+                  : <span className="text-xs text-gray-400">No stories yet</span>
+                }
+              </div>
+              <p className="text-sm font-semibold text-gray-900 leading-snug">{epic.title}</p>
+              <p className="text-xs text-gray-500 leading-relaxed line-clamp-2">{epic.description}</p>
+              <span className="text-xs text-brand-600 font-medium mt-auto">
+                {storyCount > 0 ? 'View / Edit stories →' : 'Generate stories →'}
+              </span>
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 const SETTINGS_KEY = 'productpilot_settings'
 
 function loadSettings(): APISettings {
@@ -88,7 +130,7 @@ export default function App() {
       case 'context':      return true
       case 'requirements': return true
       case 'epics':        return state.epics.length > 0
-      case 'stories':      return state.selectedEpicId !== null
+      case 'stories':      return state.epics.length > 0
     }
   }
 
@@ -258,26 +300,29 @@ export default function App() {
               onBreakIntoStories={handleBreakIntoStories}
             />
           )}
-          {state.currentStep === 'stories' && state.selectedEpicId && (
-            <StoryBreakdown
-              epicId={state.selectedEpicId}
-              epics={state.epics}
-              settings={state.settings}
-              context={state.context}
-              storyValidations={state.storyValidations}
-              storyAcceptedFixes={state.storyAcceptedFixes}
-              onStoriesGenerated={handleStoriesGenerated}
-              onStoryValidated={handleStoryValidated}
-              onFixAccepted={handleFixAccepted}
-              onAddStory={(epicId, story) => {
-                setState(p => ({
-                  ...p,
-                  epics: p.epics.map(e =>
-                    e.id === epicId ? { ...e, stories: [...(e.stories || []), story] } : e
-                  ),
-                }))
-              }}
-            />
+          {state.currentStep === 'stories' && (
+            state.selectedEpicId
+              ? <StoryBreakdown
+                  epicId={state.selectedEpicId}
+                  epics={state.epics}
+                  settings={state.settings}
+                  context={state.context}
+                  storyValidations={state.storyValidations}
+                  storyAcceptedFixes={state.storyAcceptedFixes}
+                  onSelectEpic={epicId => setState(p => ({ ...p, selectedEpicId: epicId }))}
+                  onStoriesGenerated={handleStoriesGenerated}
+                  onStoryValidated={handleStoryValidated}
+                  onFixAccepted={handleFixAccepted}
+                  onAddStory={(epicId, story) => {
+                    setState(p => ({
+                      ...p,
+                      epics: p.epics.map(e =>
+                        e.id === epicId ? { ...e, stories: [...(e.stories || []), story] } : e
+                      ),
+                    }))
+                  }}
+                />
+              : <EpicPicker epics={state.epics} onSelect={epicId => setState(p => ({ ...p, selectedEpicId: epicId }))} />
           )}
         </div>
       </main>

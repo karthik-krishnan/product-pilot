@@ -21,6 +21,7 @@ interface Props {
   context: ContextCapture
   storyValidations: Record<string, INVESTValidation>
   storyAcceptedFixes: Record<string, string[]>
+  onSelectEpic: (epicId: string) => void
   onStoriesGenerated: (epicId: string, stories: Story[]) => void
   onStoryValidated: (storyId: string, v: INVESTValidation) => void
   onFixAccepted: (storyId: string, key: string) => void
@@ -774,7 +775,7 @@ function StoryDetailModal({ story, settings, validation, acceptedKeys, onValidat
 
 type Phase = 'input' | 'discovering' | 'generating' | 'done'
 
-export default function StoryBreakdown({ epicId, epics, settings, context, storyValidations, storyAcceptedFixes, onStoriesGenerated, onStoryValidated, onFixAccepted, onAddStory }: Props) {
+export default function StoryBreakdown({ epicId, epics, settings, context, storyValidations, storyAcceptedFixes, onSelectEpic, onStoriesGenerated, onStoryValidated, onFixAccepted, onAddStory }: Props) {
   const epic = epics.find(e => e.id === epicId) || epics[0]
 
   // Restore persisted stories from App state so navigation away/back keeps them
@@ -836,11 +837,22 @@ export default function StoryBreakdown({ epicId, epics, settings, context, story
   return (
     <div className="py-6 px-6 animate-fade-in-up">
       {/* Page header */}
-      <div className="flex items-center gap-3 mb-5">
+      <div className="flex items-center justify-between gap-3 mb-5">
         <div>
           <h1 className="text-lg font-semibold text-gray-900">Story Breakdown</h1>
           <p className="text-xs text-gray-500">Review the epic, then generate and refine user stories</p>
         </div>
+        {epics.length > 1 && (
+          <select
+            value={epicId}
+            onChange={e => onSelectEpic(e.target.value)}
+            className="text-xs border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand-400 max-w-xs truncate"
+          >
+            {epics.map(e => (
+              <option key={e.id} value={e.id}>{e.title}{(e.stories?.length ?? 0) > 0 ? ` (${e.stories!.length})` : ''}</option>
+            ))}
+          </select>
+        )}
       </div>
 
       {/* Epic */}
