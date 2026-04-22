@@ -57,8 +57,10 @@ function renderEpicsView(epics: Epic[], settings: APISettings) {
     <EpicsView
       epics={epics}
       settings={settings}
+      epicChats={{}}
       onEpicsChange={vi.fn()}
       onBreakIntoStories={vi.fn()}
+      onEpicChatUpdate={vi.fn()}
     />,
   )
   // Advance all progressive-reveal timeouts so cards become visible

@@ -119,6 +119,8 @@ export type AppStep =
   | 'requirements'
   | 'epics'
 
+export type ChatEntry = { id: string; role: 'user' | 'assistant'; content: string; options?: string[]; selectedOption?: string }
+
 export interface AppState {
   currentStep: AppStep
   settings: APISettings
@@ -131,4 +133,6 @@ export interface AppState {
   selectedStoryId: string | null
   storyValidations: Record<string, INVESTValidation>
   storyAcceptedFixes: Record<string, string[]>
+  epicChats: Record<string, ChatEntry[]>
+  storyChats: Record<string, ChatEntry[]>
 }

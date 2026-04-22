@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { Layers, ChevronRight, Edit3, MessageSquare, X, Tag, ArrowRight, Sparkles, Check, Download } from 'lucide-react'
-import type { Epic, APISettings } from '../types'
+import type { Epic, APISettings, ChatEntry } from '../types'
 import { MOCK_EPICS } from '../data/mockData'
 import { exportAllToExcel } from '../utils/export'
 import JiraPushModal from './JiraPushModal'
@@ -33,22 +33,26 @@ const MOCK_AI_EPIC_FEEDBACK: Record<string, string> = {
 
 interface EpicDialogProps {
   epic: Epic
+  initialChat?: ChatEntry[]
   onClose: () => void
   onSave: (epic: Epic) => void
   onBreakIntoStories: (epic: Epic) => void
+  onChatUpdate?: (messages: ChatEntry[]) => void
 }
 
-function EpicDialog({ epic, onClose, onSave, onBreakIntoStories }: EpicDialogProps) {
+function EpicDialog({ epic, initialChat, onClose, onSave, onBreakIntoStories, onChatUpdate }: EpicDialogProps) {
   const [editedEpic, setEditedEpic] = useState(epic)
   const [activeTab, setActiveTab] = useState<'edit' | 'chat'>('edit')
   const [chatInput, setChatInput] = useState('')
-  const [chatMessages, setChatMessages] = useState<{ id: string; role: 'assistant' | 'user'; content: string }[]>([
-    {
-      id: '1',
-      role: 'assistant',
-      content: MOCK_AI_EPIC_FEEDBACK[epic.id] || `I've reviewed this epic. It looks well-structured. What aspects would you like to refine?`,
-    },
-  ])
+  const [chatMessages, setChatMessages] = useState<ChatEntry[]>(
+    initialChat ?? [
+      {
+        id: '1',
+        role: 'assistant',
+        content: MOCK_AI_EPIC_FEEDBACK[epic.id] || `I've reviewed this epic. It looks well-structured. What aspects would you like to refine?`,
+      },
+    ]
+  )
   const [isTyping, setIsTyping] = useState(false)
 
   useEffect(() => {
@@ -56,6 +60,8 @@ function EpicDialog({ epic, onClose, onSave, onBreakIntoStories }: EpicDialogPro
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
   }, [onClose])
+
+  useEffect(() => { onChatUpdate?.(chatMessages) }, [chatMessages])
 
   const sendChat = () => {
     if (!chatInput.trim()) return
@@ -286,11 +292,13 @@ function EpicCard({ epic, index, onOpen, onBreakIntoStories }: EpicCardProps) {
 interface Props {
   epics: Epic[]
   settings: APISettings
+  epicChats: Record<string, ChatEntry[]>
   onEpicsChange: (epics: Epic[]) => void
   onBreakIntoStories: (epicId: string) => void
+  onEpicChatUpdate: (epicId: string, messages: ChatEntry[]) => void
 }
 
-export default function EpicsView({ epics: propEpics, settings, onEpicsChange, onBreakIntoStories }: Props) {
+export default function EpicsView({ epics: propEpics, settings, epicChats, onEpicsChange, onBreakIntoStories, onEpicChatUpdate }: Props) {
   const epics = propEpics.length > 0 ? propEpics : (isDemo(settings) ? MOCK_EPICS : [])
   const [selectedEpic, setSelectedEpic] = useState<Epic | null>(null)
   const [showJira, setShowJira] = useState(false)
@@ -421,9 +429,11 @@ export default function EpicsView({ epics: propEpics, settings, onEpicsChange, o
       {selectedEpic && (
         <EpicDialog
           epic={selectedEpic}
+          initialChat={epicChats[selectedEpic.id]}
           onClose={() => setSelectedEpic(null)}
           onSave={handleSave}
           onBreakIntoStories={epic => { handleSave(epic); setSelectedEpic(null); onBreakIntoStories(epic.id) }}
+          onChatUpdate={msgs => onEpicChatUpdate(selectedEpic.id, msgs)}
         />
       )}
 

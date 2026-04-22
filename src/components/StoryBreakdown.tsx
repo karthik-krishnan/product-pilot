@@ -21,11 +21,13 @@ interface Props {
   context: ContextCapture
   storyValidations: Record<string, INVESTValidation>
   storyAcceptedFixes: Record<string, string[]>
+  storyChats: Record<string, ChatMsg[]>
   onSelectEpic: (epicId: string | null) => void
   onStoriesGenerated: (epicId: string, stories: Story[]) => void
   onStoryValidated: (storyId: string, v: INVESTValidation) => void
   onFixAccepted: (storyId: string, key: string) => void
   onAddStory?: (epicId: string, story: Story) => void
+  onStoryChatUpdate: (storyId: string, messages: ChatMsg[]) => void
 }
 
 const PRIORITY_COLORS: Record<string, string> = {
@@ -334,15 +336,18 @@ function StoryContent({ story }: { story: Story }) {
 
 // ─── StoryDiscussPanel ────────────────────────────────────────────────────────
 
-function StoryDiscussPanel({ story }: { story: Story }) {
-  const [messages, setMessages] = useState<ChatMsg[]>([
-    { id: '0', role: 'assistant', content: `What would you like to discuss about "${story.title}"? I can help clarify scope, refine acceptance criteria, or explore edge cases.` },
-  ])
+function StoryDiscussPanel({ story, initialMessages, onMessagesChange }: { story: Story; initialMessages?: ChatMsg[]; onMessagesChange?: (msgs: ChatMsg[]) => void }) {
+  const [messages, setMessages] = useState<ChatMsg[]>(
+    initialMessages ?? [
+      { id: '0', role: 'assistant', content: `What would you like to discuss about "${story.title}"? I can help clarify scope, refine acceptance criteria, or explore edge cases.` },
+    ]
+  )
   const [input, setInput]     = useState('')
   const [typing, setTyping]   = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages, typing])
+  useEffect(() => { onMessagesChange?.(messages) }, [messages])
 
   const MOCK_REPLIES = [
     `Good point. For the "${story.title}" story, I'd recommend also considering the edge case where the user has incomplete profile data — it could affect the acceptance criteria around data validation.`,
@@ -552,7 +557,7 @@ function CopyMarkdownButton({ story }: { story: Story }) {
   )
 }
 
-function StoryDetailModal({ story, settings, validation, acceptedKeys, onValidated, onFixAccepted, onStoryChange, onAddStory, onClose, initialTab = 'view' }: {
+function StoryDetailModal({ story, settings, validation, acceptedKeys, onValidated, onFixAccepted, onStoryChange, onAddStory, onClose, initialTab = 'view', initialDiscussMessages, onDiscussMessagesChange }: {
   story: Story
   settings: APISettings
   validation: INVESTValidation | null
@@ -563,6 +568,8 @@ function StoryDetailModal({ story, settings, validation, acceptedKeys, onValidat
   onAddStory: (s: Omit<Story, 'id'>) => void
   onClose: () => void
   initialTab?: StoryTab
+  initialDiscussMessages?: ChatMsg[]
+  onDiscussMessagesChange?: (msgs: ChatMsg[]) => void
 }) {
   const [tab, setTab] = useState<StoryTab>(initialTab)
   const [draft, setDraft] = useState(story)
@@ -703,7 +710,7 @@ function StoryDetailModal({ story, settings, validation, acceptedKeys, onValidat
 
           {tab === 'discuss' && (
             <div className="p-5">
-              <StoryDiscussPanel story={story} />
+              <StoryDiscussPanel story={story} initialMessages={initialDiscussMessages} onMessagesChange={onDiscussMessagesChange} />
             </div>
           )}
 
@@ -773,7 +780,7 @@ function StoryDetailModal({ story, settings, validation, acceptedKeys, onValidat
 
 type Phase = 'input' | 'discovering' | 'generating' | 'done'
 
-export default function StoryBreakdown({ epicId, epics, settings, context, storyValidations, storyAcceptedFixes, onSelectEpic, onStoriesGenerated, onStoryValidated, onFixAccepted, onAddStory }: Props) {
+export default function StoryBreakdown({ epicId, epics, settings, context, storyValidations, storyAcceptedFixes, storyChats, onSelectEpic, onStoriesGenerated, onStoryValidated, onFixAccepted, onAddStory, onStoryChatUpdate }: Props) {
   const epic = epics.find(e => e.id === epicId) || epics[0]
 
   // Restore persisted stories from App state so navigation away/back keeps them
@@ -1039,6 +1046,8 @@ export default function StoryBreakdown({ epicId, epics, settings, context, story
           }}
           onAddStory={handleAddStory}
           onClose={() => setSelectedStory(null)}
+          initialDiscussMessages={storyChats[selectedStory.story.id]}
+          onDiscussMessagesChange={msgs => onStoryChatUpdate(selectedStory.story.id, msgs)}
         />
       )}
     </div>

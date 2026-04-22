@@ -3,7 +3,7 @@ import {
   BookOpen, FileText, Layers,
   ChevronRight, Sparkles, Menu, X, Settings as SettingsIcon
 } from 'lucide-react'
-import type { AppStep, AppState, APISettings, ContextCapture as ContextCaptureType, ClarifyingQuestion, Epic, Story, INVESTValidation } from './types'
+import type { AppStep, AppState, APISettings, ContextCapture as ContextCaptureType, ClarifyingQuestion, Epic, Story, INVESTValidation, ChatEntry } from './types'
 import Settings from './components/Settings'
 import ContextCaptureComponent from './components/ContextCapture'
 import RequirementsInput from './components/RequirementsInput'
@@ -73,6 +73,8 @@ export default function App() {
     selectedStoryId: null,
     storyValidations: {},
     storyAcceptedFixes: {},
+    epicChats: {},
+    storyChats: {},
   })
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -138,6 +140,12 @@ export default function App() {
 
   const handleStoryValidated = (storyId: string, validation: INVESTValidation) =>
     setState(p => ({ ...p, storyValidations: { ...p.storyValidations, [storyId]: validation } }))
+
+  const handleEpicChatUpdate = (epicId: string, messages: ChatEntry[]) =>
+    setState(p => ({ ...p, epicChats: { ...p.epicChats, [epicId]: messages } }))
+
+  const handleStoryChatUpdate = (storyId: string, messages: ChatEntry[]) =>
+    setState(p => ({ ...p, storyChats: { ...p.storyChats, [storyId]: messages } }))
 
   const handleFixAccepted = (storyId: string, key: string) =>
     setState(p => ({
@@ -284,8 +292,10 @@ export default function App() {
                 ? <EpicsView
                     epics={state.epics}
                     settings={state.settings}
+                    epicChats={state.epicChats}
                     onEpicsChange={handleEpicsChange}
                     onBreakIntoStories={handleBreakIntoStories}
+                    onEpicChatUpdate={handleEpicChatUpdate}
                   />
                 : <AllStoriesView
                     epics={state.epics}
@@ -304,7 +314,9 @@ export default function App() {
               context={state.context}
               storyValidations={state.storyValidations}
               storyAcceptedFixes={state.storyAcceptedFixes}
+              storyChats={state.storyChats}
               onSelectEpic={epicId => setState(p => ({ ...p, selectedEpicId: epicId ?? null }))}
+              onStoryChatUpdate={handleStoryChatUpdate}
               onStoriesGenerated={handleStoriesGenerated}
               onStoryValidated={handleStoryValidated}
               onFixAccepted={handleFixAccepted}
