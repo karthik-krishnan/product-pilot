@@ -138,6 +138,14 @@ export default function App() {
       case 'stories':      return state.epics.length > 0
     }
   }
+  const isCompleted = (step: AppStep) => {
+    switch (step) {
+      case 'context':      return state.currentStep !== 'context'
+      case 'requirements': return state.epics.length > 0
+      case 'epics':        return state.epics.some(e => (e.stories?.length ?? 0) > 0)
+      case 'stories':      return false
+    }
+  }
 
   const handleSettingsSave = (settings: APISettings) => {
     try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)) } catch { /* ignore */ }
@@ -231,7 +239,7 @@ export default function App() {
                 <div className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 text-xs font-bold ${
                   active ? 'bg-white/20 text-white' : unlocked ? 'bg-gray-100 text-gray-500' : 'bg-gray-50 text-gray-200'
                 }`}>
-                  {!active && unlocked ? '✓' : i + 1}
+                  {!active && isCompleted(step.id) ? '✓' : i + 1}
                 </div>
                 <div className="min-w-0">
                   <p className={`text-xs font-semibold truncate ${active ? 'text-white' : ''}`}>{step.label}</p>
