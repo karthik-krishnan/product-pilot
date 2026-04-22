@@ -790,7 +790,6 @@ export default function StoryBreakdown({ epicId, epics, settings, context, story
     new Set(existingStories.map(s => s.id)),
   )
   const revealedStoriesRef = useRef<Set<string>>(new Set(existingStories.map(s => s.id)))
-  const [generatingMore, setGeneratingMore] = useState(false)
   const [selectedStory, setSelectedStory] = useState<{ story: Story; tab: StoryTab } | null>(null)
   const [activePriority, setActivePriority] = useState<string | null>(null)
 
@@ -820,7 +819,7 @@ export default function StoryBreakdown({ epicId, epics, settings, context, story
       const raw = await callLLM(
         buildGenerateStoriesPrompt(epic, context, questions),
         settings,
-        [],
+        [...context.domainFiles, ...context.techFiles],
         'generate-stories',
       )
       const generated = parseStories(raw, epic.id)
@@ -831,31 +830,6 @@ export default function StoryBreakdown({ epicId, epics, settings, context, story
     } catch (err) {
       setError((err as Error).message)
       setPhase('input')
-    }
-  }
-
-  const generateMoreStories = async () => {
-    setGeneratingMore(true)
-    setError(null)
-    try {
-      const current = localStories.map(s => getStory(s))
-      const raw = await callLLM(
-        buildGenerateStoriesPrompt(epic, context, [], current),
-        settings,
-        [],
-        'generate-more-stories',
-      )
-      const additional = parseStories(raw, epic.id).map((s, i) => ({
-        ...s,
-        id: `story-${epic.id}-more-${Date.now()}-${i}`,
-      }))
-      setStories(prev => [...prev, ...additional])
-      setLocalStories(prev => [...prev, ...additional])
-      onStoriesGenerated(epic.id, [...localStories, ...additional])
-    } catch (err) {
-      setError((err as Error).message)
-    } finally {
-      setGeneratingMore(false)
     }
   }
 
@@ -952,14 +926,6 @@ export default function StoryBreakdown({ epicId, epics, settings, context, story
               </div>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={generateMoreStories}
-                  disabled={generatingMore}
-                  className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border border-brand-200 bg-brand-50 text-brand-700 hover:bg-brand-100 transition-colors disabled:opacity-50"
-                >
-                  {generatingMore ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-                  {generatingMore ? 'Generating…' : 'Generate More'}
-                </button>
-                <button
                   onClick={() => exportStoriesToExcel(localStories.map(s => getStory(s)), epic?.title)}
                   className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition-colors"
                 >
@@ -1025,12 +991,6 @@ export default function StoryBreakdown({ epicId, epics, settings, context, story
                   onValidate={() => setSelectedStory({ story: getStory(s), tab: 'validate' })}
                 />
               ))}
-              {generatingMore && (
-                <div className="card p-4 flex items-center gap-2 border-dashed text-brand-600 text-xs">
-                  <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
-                  Generating additional stories…
-                </div>
-              )}
             </div>
           </div>
         )

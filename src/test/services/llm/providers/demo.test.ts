@@ -33,13 +33,11 @@ describe('callDemo', () => {
     expect(parsed.epics).toEqual(MOCK_EPICS)
   })
 
-  it('returns stories in { stories: [] } envelope without id/epicId', async () => {
+  it('returns all stories in { stories: [] } envelope without id/epicId', async () => {
     const raw = await callDemo('generate-stories')
     const parsed = JSON.parse(raw)
     expect(parsed).toHaveProperty('stories')
-    // generate-stories returns the first batch (4 stories); generate-more-stories returns the rest
-    expect(parsed.stories.length).toBeGreaterThan(0)
-    expect(parsed.stories.length).toBeLessThanOrEqual(MOCK_STORY_LIST.length)
+    expect(parsed.stories.length).toBe(MOCK_STORY_LIST.length)
     // id and epicId must be stripped so parseStories can inject the real epicId
     for (const s of parsed.stories) {
       expect(s).not.toHaveProperty('id')
@@ -51,15 +49,9 @@ describe('callDemo', () => {
     expect(parsed.stories[0]).toHaveProperty('acceptanceCriteria')
   })
 
-  it('returns additional stories for generate-more-stories', async () => {
+  it('returns empty object for generate-more-stories (removed feature)', async () => {
     const raw = await callDemo('generate-more-stories')
-    const parsed = JSON.parse(raw)
-    expect(parsed).toHaveProperty('stories')
-    expect(parsed.stories.length).toBeGreaterThan(0)
-    for (const s of parsed.stories) {
-      expect(s).not.toHaveProperty('id')
-      expect(s).not.toHaveProperty('epicId')
-    }
+    expect(JSON.parse(raw)).toEqual({})
   })
 
   it('returns INVEST validation object', async () => {

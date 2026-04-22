@@ -7,21 +7,16 @@ export function buildGenerateStoriesPrompt(
   epic: Epic,
   context: ContextCapture,
   questions: ClarifyingQuestion[],
-  existingStories: Story[] = [],
 ): LLMMessage[] {
   const qaBlock = questions.length > 0
     ? questions.map(q => `Q: ${q.question}\nA: ${q.answer || '(no answer provided)'}`).join('\n\n')
     : '(no discovery questions — generate based on epic details and context)'
 
-  const existingBlock = existingStories.length > 0
-    ? `\nALREADY GENERATED STORIES (do not duplicate these):\n${existingStories.map(s => `- ${s.title}`).join('\n')}\n`
-    : ''
-
   return [
     { role: 'system', content: SYSTEM_PROMPT },
     {
       role: 'user',
-      content: `Break down the following epic into detailed, INVEST-compliant user stories.${existingBlock ? '\n' + existingBlock : ''}
+      content: `You are a senior product manager breaking down an epic into a complete, production-ready set of user stories for a real engineering team.
 
 DOMAIN CONTEXT:
 ${context.domainText || '(none provided)'}
@@ -38,35 +33,63 @@ Tags: ${epic.tags.join(', ')}
 STORY DISCOVERY Q&A:
 ${qaBlock}
 
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+BEFORE writing any stories, mentally walk through ALL of the following coverage areas and ask yourself: does this epic require a story here? Only skip an area if it genuinely does not apply.
+
+1. CORE HAPPY PATH — the primary user action working end-to-end
+2. ALL USER ROLES — different roles (end user, admin, guest, power user, ops team) may need separate stories
+3. DATA ENTRY & VALIDATION — form fields, constraints, error messages, character limits
+4. EMPTY STATES — what the user sees before any data exists (first-time use, no results, no content)
+5. ERROR & FAILURE STATES — API failures, network errors, timeouts, partial failures, retry flows
+6. LOADING & ASYNC STATES — skeleton screens, progress indicators, optimistic UI
+7. EDITING & UPDATING — updating existing records, conflict resolution, autosave
+8. DELETION & ARCHIVAL — soft delete, confirmation dialogs, undo/restore
+9. SEARCH, FILTER & SORT — discovery and navigation within the feature
+10. PAGINATION & INFINITE SCROLL — large dataset handling
+11. PERMISSIONS & ACCESS CONTROL — who can see/do what; unauthorised state handling
+12. NOTIFICATIONS & COMMUNICATIONS — emails, in-app alerts, webhooks triggered by actions
+13. AUDIT & HISTORY — activity logs, change history, who did what and when
+14. MOBILE & RESPONSIVE — touch targets, layout differences, device-specific behaviour
+15. ACCESSIBILITY — keyboard navigation, screen reader support, colour contrast, ARIA labels
+16. PERFORMANCE — load time SLAs, caching, lazy loading where the epic implies scale
+17. INTEGRATIONS — third-party systems, webhooks, data sync, API contracts
+18. REPORTING & ANALYTICS — dashboards, exports, event tracking this feature must emit
+19. ONBOARDING & FIRST-RUN — tooltips, walkthroughs, empty-state CTAs for new users
+20. SETTINGS & PREFERENCES — user-configurable behaviour within this feature
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 Return this exact JSON schema:
 {
   "stories": [
     {
       "title": "<concise story title>",
-      "asA": "<user role, e.g. 'registered shopper', 'admin', 'guest user'>",
+      "asA": "<specific user role — be precise: 'registered shopper', 'warehouse admin', 'guest user', not just 'user'>",
       "iWantTo": "<concrete action the user wants to perform>",
-      "soThat": "<business value or user outcome>",
+      "soThat": "<specific business value or user outcome — avoid vague phrases like 'have a good experience'>",
       "acceptanceCriteria": [
-        "<specific, testable criterion — include measurable thresholds where relevant>",
-        "<add as many criteria as the story genuinely requires: simpler stories 2–3, complex stories 5–7>"
+        "<specific, testable criterion with measurable thresholds where relevant>",
+        "<scale count to complexity: 2–3 for simple stories (1–3 pts), 4–5 for medium (5 pts), 5–7 for complex (8 pts)>"
       ],
       "inScope": ["<what is explicitly included in this story>"],
-      "outOfScope": ["<what is explicitly excluded — things users might assume are included>"],
-      "assumptions": ["<assumption the team is making that could affect delivery>"],
-      "crossFunctionalNeeds": ["<dependency on another team or system, e.g. 'Analytics: track X event to data lake'>"],
+      "outOfScope": ["<capabilities users might assume are included but are NOT in this story — be specific>"],
+      "assumptions": ["<assumption the team is making that if wrong would change scope or estimate>"],
+      "crossFunctionalNeeds": ["<specific team or system dependency, e.g. 'Analytics: emit search_query_submitted event with result_count', 'Security: penetration test required before go-live'>"],
       "priority": "High" | "Medium" | "Low",
-      "storyPoints": <fibonacci: 1, 2, 3, 5, 8, 13>
+      "storyPoints": <fibonacci: 1, 2, 3, 5, 8>
     }
   ]
 }
 
 Rules:
 - Every story must satisfy all INVEST principles: Independent, Negotiable, Valuable, Estimable, Small, Testable.
-- Acceptance criteria count must reflect story complexity: 2–3 for small/simple stories (1–3 pts), 4–5 for medium (5 pts), 5–7 for complex stories (8 pts). Do not give every story the same number.
-- outOfScope must explicitly name things a user might reasonably expect but that aren't included.
-- crossFunctionalNeeds should reference specific teams or systems (Analytics, Infrastructure, UX, Platform, Security).
-- Every story must be ≤ 8 story points. If a capability cannot fit in 8 points, split it into two or more stories — this is the only size constraint.
-- Generate as many stories as the epic genuinely requires. Do not pad with trivial stories; do not omit real capabilities to hit a target count.${existingStories.length > 0 ? '\n- Only generate NEW stories not already listed above.' : ''}`,
+- Every story must be ≤ 8 story points. Split anything larger into two or more independent stories.
+- Acceptance criteria must be specific and verifiable — no vague terms like "should work", "must be fast", "user-friendly".
+- outOfScope must name real things users would reasonably expect, not obvious non-starters.
+- crossFunctionalNeeds must name the specific team or system and the specific ask — not just "talk to Analytics".
+- Do not pad with trivial stories. Do not omit real capabilities to hit a lower count. A thorough epic breakdown is typically 8–20 stories.
+- Prioritise ruthlessly: High = must-have for launch, Medium = important but not blocking, Low = nice-to-have or post-launch.`,
     },
   ]
 }
