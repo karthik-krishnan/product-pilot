@@ -126,7 +126,7 @@ export default function AllStoriesView({ epics, storyValidations, storyAcceptedF
           {epicsWithStories.map(e => <option key={e.id} value={e.id}>{e.title}</option>)}
         </select>
 
-        {categories.length > 1 && (
+        {categories.length > 0 && (
           <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)}
             className="text-xs border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand-400">
             <option value="all">All categories</option>
