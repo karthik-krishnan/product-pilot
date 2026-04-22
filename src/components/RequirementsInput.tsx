@@ -192,12 +192,12 @@ export default function RequirementsInput({
           <div className="flex items-center justify-between">
             <button
               onClick={handleSkip}
-              disabled={isLiveMode(settings) && !localReqs.trim()}
+              disabled={llmLoading || (isLiveMode(settings) && !localReqs.trim())}
               className="btn-secondary flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
               title={isLiveMode(settings) && !localReqs.trim() ? 'Enter requirements first in live AI mode' : undefined}
             >
-              <SkipForward className="w-4 h-4" />
-              Generate Epics Directly
+              {llmLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <SkipForward className="w-4 h-4" />}
+              {llmLoading ? 'Generating Epics…' : 'Generate Epics Directly'}
             </button>
             {settings.assistanceLevel > 0 && (
               <button
