@@ -120,7 +120,12 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false)
 
   const goTo = (step: AppStep) => {
-    setState(p => ({ ...p, currentStep: step }))
+    setState(p => ({
+      ...p,
+      currentStep: step,
+      // Always show the epic picker when navigating to Stories via the sidebar
+      ...(step === 'stories' ? { selectedEpicId: null } : {}),
+    }))
     setSidebarOpen(false)
   }
 
@@ -310,6 +315,7 @@ export default function App() {
                   storyValidations={state.storyValidations}
                   storyAcceptedFixes={state.storyAcceptedFixes}
                   onSelectEpic={epicId => setState(p => ({ ...p, selectedEpicId: epicId }))}
+
                   onStoriesGenerated={handleStoriesGenerated}
                   onStoryValidated={handleStoryValidated}
                   onFixAccepted={handleFixAccepted}

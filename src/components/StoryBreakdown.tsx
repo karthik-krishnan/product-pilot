@@ -21,7 +21,7 @@ interface Props {
   context: ContextCapture
   storyValidations: Record<string, INVESTValidation>
   storyAcceptedFixes: Record<string, string[]>
-  onSelectEpic: (epicId: string) => void
+  onSelectEpic: (epicId: string | null) => void
   onStoriesGenerated: (epicId: string, stories: Story[]) => void
   onStoryValidated: (storyId: string, v: INVESTValidation) => void
   onFixAccepted: (storyId: string, key: string) => void
@@ -838,20 +838,31 @@ export default function StoryBreakdown({ epicId, epics, settings, context, story
     <div className="py-6 px-6 animate-fade-in-up">
       {/* Page header */}
       <div className="flex items-center justify-between gap-3 mb-5">
-        <div>
-          <h1 className="text-lg font-semibold text-gray-900">Story Breakdown</h1>
-          <p className="text-xs text-gray-500">Review the epic, then generate and refine user stories</p>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => onSelectEpic(null)}
+            className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-brand-600 border border-gray-200 bg-white rounded-lg px-2.5 py-1.5 hover:border-brand-300 transition-colors"
+          >
+            ← All Epics
+          </button>
+          <div>
+            <h1 className="text-lg font-semibold text-gray-900">Story Breakdown</h1>
+            <p className="text-xs text-gray-500">Review the epic, then generate and refine user stories</p>
+          </div>
         </div>
         {epics.length > 1 && (
-          <select
-            value={epicId}
-            onChange={e => onSelectEpic(e.target.value)}
-            className="text-xs border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand-400 max-w-xs truncate"
-          >
-            {epics.map(e => (
-              <option key={e.id} value={e.id}>{e.title}{(e.stories?.length ?? 0) > 0 ? ` (${e.stories!.length})` : ''}</option>
-            ))}
-          </select>
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="text-xs text-gray-400 whitespace-nowrap">Switch epic</span>
+            <select
+              value={epicId}
+              onChange={e => onSelectEpic(e.target.value)}
+              className="text-xs border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand-400 max-w-[200px] truncate"
+            >
+              {epics.map(e => (
+                <option key={e.id} value={e.id}>{e.title}{(e.stories?.length ?? 0) > 0 ? ` (${e.stories!.length})` : ''}</option>
+              ))}
+            </select>
+          </div>
         )}
       </div>
 
