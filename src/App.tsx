@@ -83,7 +83,14 @@ export default function App() {
   }
 
   const currentIdx = STEP_ORDER.indexOf(state.currentStep)
-  const isUnlocked = (step: AppStep) => STEP_ORDER.indexOf(step) <= currentIdx
+  const isUnlocked = (step: AppStep) => {
+    switch (step) {
+      case 'context':      return true
+      case 'requirements': return true
+      case 'epics':        return state.epics.length > 0
+      case 'stories':      return state.selectedEpicId !== null
+    }
+  }
 
   const handleSettingsSave = (settings: APISettings) => {
     try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)) } catch { /* ignore */ }
@@ -177,7 +184,7 @@ export default function App() {
                 <div className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 text-xs font-bold ${
                   active ? 'bg-white/20 text-white' : unlocked ? 'bg-gray-100 text-gray-500' : 'bg-gray-50 text-gray-200'
                 }`}>
-                  {currentIdx > i ? '✓' : i + 1}
+                  {!active && unlocked ? '✓' : i + 1}
                 </div>
                 <div className="min-w-0">
                   <p className={`text-xs font-semibold truncate ${active ? 'text-white' : ''}`}>{step.label}</p>
