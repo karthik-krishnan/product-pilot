@@ -156,10 +156,15 @@ export default function RequirementsInput({
         <p className="text-sm text-gray-500 mt-1">
           Describe your high-level requirements. The AI will ask a few targeted questions before generating epics.
         </p>
-        {isLiveMode(settings) && (
+        {isLiveMode(settings) ? (
           <span className="inline-flex items-center gap-1.5 mt-2 text-xs text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-full px-2.5 py-1">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
             Live AI — {settings.provider}
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1.5 mt-2 text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-2.5 py-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+            Demo mode — sample data only, not reading your input
           </span>
         )}
       </div>
