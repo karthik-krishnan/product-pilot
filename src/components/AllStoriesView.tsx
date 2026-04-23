@@ -1,6 +1,8 @@
 import { useState } from 'react'
-import { BookMarked, ShieldCheck, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react'
+import { BookMarked, ShieldCheck, ChevronUp, ChevronDown, ChevronsUpDown, Download, Upload } from 'lucide-react'
 import type { Epic, Story, INVESTValidation } from '../types'
+import { exportStoriesToExcel } from '../utils/export'
+import JiraPushModal from './JiraPushModal'
 
 interface Props {
   epics: Epic[]
@@ -43,6 +45,7 @@ export default function AllStoriesView({ epics, storyValidations, storyAcceptedF
   const [filterPriority, setFilterPriority]   = useState('all')
   const [sortKey, setSortKey]                 = useState<SortKey>('priority')
   const [sortDir, setSortDir]                 = useState<SortDir>('asc')
+  const [showJira, setShowJira]               = useState(false)
 
   const rows: { story: Story; epic: Epic; score: number | null }[] = epics.flatMap(epic =>
     (epic.stories ?? []).map(story => {
@@ -148,7 +151,26 @@ export default function AllStoriesView({ epics, storyValidations, storyAcceptedF
         )}
 
         <span className="ml-auto text-xs text-gray-400">{sorted.length} of {rows.length} stories</span>
+        <button
+          onClick={() => exportStoriesToExcel(sorted.map(r => r.story), 'All Stories')}
+          className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border bg-white text-gray-600 border-gray-200 hover:bg-gray-50 transition-colors"
+        >
+          <Download className="w-3.5 h-3.5" /> Export Excel
+        </button>
+        <button
+          onClick={() => setShowJira(true)}
+          className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border bg-white text-gray-600 border-gray-200 hover:bg-gray-50 transition-colors"
+        >
+          <Upload className="w-3.5 h-3.5" /> Push to Jira
+        </button>
       </div>
+
+      {showJira && (
+        <JiraPushModal
+          items={sorted.map(r => ({ id: r.story.id, title: r.story.title, type: 'Story' as const }))}
+          onClose={() => setShowJira(false)}
+        />
+      )}
 
       {/* Table */}
       <div className="card overflow-hidden p-0">
