@@ -308,6 +308,7 @@ export default function App() {
           )}
           {state.currentStep === 'epics' && state.selectedEpicId && (
             <StoryBreakdown
+              key={state.selectedEpicId}
               epicId={state.selectedEpicId}
               epics={state.epics}
               settings={state.settings}

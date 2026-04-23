@@ -833,7 +833,11 @@ export default function StoryBreakdown({ epicId, epics, settings, context, story
     onAddStory?.(partial.epicId, newStory)
   }
 
+  const generationEpicId = useRef(epicId)
+  useEffect(() => { generationEpicId.current = epicId }, [epicId])
+
   const generateStories = async (questions: ClarifyingQuestion[]) => {
+    const targetEpicId = epicId
     setPhase('generating')
     setError(null)
     try {
@@ -843,12 +847,15 @@ export default function StoryBreakdown({ epicId, epics, settings, context, story
         [...context.domainFiles, ...context.techFiles],
         'generate-stories',
       )
+      // Guard: ignore result if user has switched to a different epic
+      if (generationEpicId.current !== targetEpicId) return
       const generated = parseStories(raw, epic.id)
       setStories(generated)
       setLocalStories(generated)
       setPhase('done')
       onStoriesGenerated(epic.id, generated)
     } catch (err) {
+      if (generationEpicId.current !== targetEpicId) return
       setError((err as Error).message)
       setPhase('input')
     }
