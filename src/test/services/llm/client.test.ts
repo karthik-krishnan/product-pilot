@@ -1,6 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { isDemo, hasValidKey, isLiveMode, callLLM } from '../../../services/llm/client'
-import type { APISettings, LLMMessage } from '../../../types'
+import type { LLMMessage } from '../../../services/llm/client'
+import type { APISettings } from '../../../types'
 
 // ─── Provider isolation mocks ─────────────────────────────────────────────────
 // Each real provider module is mocked so we can assert which one callLLM invokes
