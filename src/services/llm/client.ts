@@ -35,9 +35,12 @@ export function isLiveMode(settings: APISettings): boolean {
 
 import type { LLMMessage } from './shared'
 
+// Chat task types return plain prose; all other tasks return structured JSON.
+const CHAT_PROMPT_TYPES = new Set(['epic-chat', 'story-chat'])
+
 /**
- * promptType is only used by the demo provider to select its canned response.
- * All real providers ignore it.
+ * promptType is used by the demo provider to select its canned response, and
+ * by all real providers to decide whether to request JSON or plain-text output.
  */
 export async function callLLM(
   messages: LLMMessage[],
@@ -45,12 +48,13 @@ export async function callLLM(
   files: UploadedFile[] = [],
   promptType?: string,
 ): Promise<string> {
+  const jsonMode = !promptType || !CHAT_PROMPT_TYPES.has(promptType)
   switch (settings.provider) {
     case 'demo':         return callDemo(promptType)
-    case 'anthropic':    return callAnthropic(messages, settings, files)
-    case 'openai':       return callOpenAI(messages, settings, files)
-    case 'azure-openai': return callAzureOpenAI(messages, settings, files)
-    case 'google':       return callGoogle(messages, settings, files)
-    case 'ollama':       return callOllama(messages, settings, files)
+    case 'anthropic':    return callAnthropic(messages, settings, files)           // Anthropic has no explicit JSON mode flag
+    case 'openai':       return callOpenAI(messages, settings, files, jsonMode)
+    case 'azure-openai': return callAzureOpenAI(messages, settings, files, jsonMode)
+    case 'google':       return callGoogle(messages, settings, files, jsonMode)
+    case 'ollama':       return callOllama(messages, settings, files, jsonMode)
   }
 }

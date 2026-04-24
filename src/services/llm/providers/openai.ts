@@ -1,7 +1,7 @@
 import type { APISettings, UploadedFile } from '../../../types'
 import { LLMMessage, LLMError, injectFilesIntoMessages } from '../shared'
 
-export async function callOpenAI(messages: LLMMessage[], s: APISettings, files: UploadedFile[]): Promise<string> {
+export async function callOpenAI(messages: LLMMessage[], s: APISettings, files: UploadedFile[], jsonMode = true): Promise<string> {
   const res = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -11,7 +11,7 @@ export async function callOpenAI(messages: LLMMessage[], s: APISettings, files: 
     body: JSON.stringify({
       model: s.openaiModel,
       messages: injectFilesIntoMessages(messages, files),
-      response_format: { type: 'json_object' },
+      ...(jsonMode ? { response_format: { type: 'json_object' } } : {}),
       max_tokens: 4096,
     }),
   })

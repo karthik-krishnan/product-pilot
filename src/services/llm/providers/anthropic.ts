@@ -43,5 +43,7 @@ export async function callAnthropic(messages: LLMMessage[], s: APISettings, file
   })
   if (!res.ok) throw new LLMError('Anthropic', res.status, await res.text())
   const data = await res.json()
-  return data.content[0].text
+  // content[] may contain thinking blocks before the text block — find the text block explicitly
+  const textBlock = data.content?.find((b: { type: string }) => b.type === 'text')
+  return textBlock?.text ?? ''
 }

@@ -1,7 +1,7 @@
 import type { APISettings, UploadedFile } from '../../../types'
 import { LLMMessage, LLMError } from '../shared'
 
-export async function callGoogle(messages: LLMMessage[], s: APISettings, files: UploadedFile[]): Promise<string> {
+export async function callGoogle(messages: LLMMessage[], s: APISettings, files: UploadedFile[], jsonMode = true): Promise<string> {
   const system = messages.find(m => m.role === 'system')?.content
   const chat = messages.filter(m => m.role !== 'system')
 
@@ -30,7 +30,7 @@ export async function callGoogle(messages: LLMMessage[], s: APISettings, files: 
       body: JSON.stringify({
         ...(system ? { systemInstruction: { parts: [{ text: system }] } } : {}),
         contents,
-        generationConfig: { responseMimeType: 'application/json', maxOutputTokens: 4096 },
+        generationConfig: { ...(jsonMode ? { responseMimeType: 'application/json' } : {}), maxOutputTokens: 4096 },
       }),
     },
   )
