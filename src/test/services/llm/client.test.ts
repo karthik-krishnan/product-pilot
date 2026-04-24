@@ -263,3 +263,89 @@ describe('callLLM — live mode routes to the correct provider only', () => {
     expect(callGoogle).not.toHaveBeenCalled()
   })
 })
+
+// ─── callLLM — jsonMode flag ──────────────────────────────────────────────────
+//
+// Guards the invariant that chat prompt types (epic-chat, story-chat) pass
+// jsonMode=false to every provider, while all structured-output prompt types
+// pass jsonMode=true (the default).
+//
+// Why this matters: Azure OpenAI, OpenAI, Google, and Ollama have a JSON-mode
+// API flag that silently overrides any prompt instruction to "respond in prose".
+// Sending that flag for chat calls produces empty or {} responses.
+
+const OPENAI_SETTINGS  = withProvider('openai',       { openaiKey: 'sk-test' })
+const AZURE_SETTINGS   = withProvider('azure-openai', { azureKey: 'k', azureEndpoint: 'https://x.openai.azure.com', azureDeployment: 'gpt4' })
+const GOOGLE_SETTINGS  = withProvider('google',       { googleKey: 'AIza-test' })
+const OLLAMA_SETTINGS  = withProvider('ollama',       { ollamaEndpoint: 'http://localhost:11434', ollamaModel: 'llama3' })
+
+describe('callLLM — chat prompt types pass jsonMode=false to providers', () => {
+  beforeEach(() => {
+    vi.mocked(callOpenAI).mockClear()
+    vi.mocked(callAzureOpenAI).mockClear()
+    vi.mocked(callGoogle).mockClear()
+    vi.mocked(callOllama).mockClear()
+  })
+
+  const CHAT_TYPES = ['epic-chat', 'story-chat']
+
+  for (const chatType of CHAT_TYPES) {
+    it(`openai: ${chatType} → jsonMode=false`, async () => {
+      await callLLM(MESSAGES, OPENAI_SETTINGS, [], chatType)
+      expect(callOpenAI).toHaveBeenCalledWith(MESSAGES, OPENAI_SETTINGS, [], false)
+    })
+
+    it(`azure-openai: ${chatType} → jsonMode=false`, async () => {
+      await callLLM(MESSAGES, AZURE_SETTINGS, [], chatType)
+      expect(callAzureOpenAI).toHaveBeenCalledWith(MESSAGES, AZURE_SETTINGS, [], false)
+    })
+
+    it(`google: ${chatType} → jsonMode=false`, async () => {
+      await callLLM(MESSAGES, GOOGLE_SETTINGS, [], chatType)
+      expect(callGoogle).toHaveBeenCalledWith(MESSAGES, GOOGLE_SETTINGS, [], false)
+    })
+
+    it(`ollama: ${chatType} → jsonMode=false`, async () => {
+      await callLLM(MESSAGES, OLLAMA_SETTINGS, [], chatType)
+      expect(callOllama).toHaveBeenCalledWith(MESSAGES, OLLAMA_SETTINGS, [], false)
+    })
+  }
+})
+
+describe('callLLM — structured prompt types pass jsonMode=true to providers', () => {
+  beforeEach(() => {
+    vi.mocked(callOpenAI).mockClear()
+    vi.mocked(callAzureOpenAI).mockClear()
+    vi.mocked(callGoogle).mockClear()
+    vi.mocked(callOllama).mockClear()
+  })
+
+  const STRUCTURED_TYPES = ['generate-epics', 'generate-stories', 'validate-invest', 'clarifying-questions']
+
+  for (const structuredType of STRUCTURED_TYPES) {
+    it(`openai: ${structuredType} → jsonMode=true`, async () => {
+      await callLLM(MESSAGES, OPENAI_SETTINGS, [], structuredType)
+      expect(callOpenAI).toHaveBeenCalledWith(MESSAGES, OPENAI_SETTINGS, [], true)
+    })
+  }
+
+  it('openai: no promptType → jsonMode=true', async () => {
+    await callLLM(MESSAGES, OPENAI_SETTINGS, [])
+    expect(callOpenAI).toHaveBeenCalledWith(MESSAGES, OPENAI_SETTINGS, [], true)
+  })
+
+  it('azure-openai: generate-epics → jsonMode=true', async () => {
+    await callLLM(MESSAGES, AZURE_SETTINGS, [], 'generate-epics')
+    expect(callAzureOpenAI).toHaveBeenCalledWith(MESSAGES, AZURE_SETTINGS, [], true)
+  })
+
+  it('google: generate-stories → jsonMode=true', async () => {
+    await callLLM(MESSAGES, GOOGLE_SETTINGS, [], 'generate-stories')
+    expect(callGoogle).toHaveBeenCalledWith(MESSAGES, GOOGLE_SETTINGS, [], true)
+  })
+
+  it('ollama: validate-invest → jsonMode=true', async () => {
+    await callLLM(MESSAGES, OLLAMA_SETTINGS, [], 'validate-invest')
+    expect(callOllama).toHaveBeenCalledWith(MESSAGES, OLLAMA_SETTINGS, [], true)
+  })
+})
