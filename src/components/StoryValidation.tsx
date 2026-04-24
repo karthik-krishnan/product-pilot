@@ -223,20 +223,59 @@ function INVESTRow({ principleKey, item, accepted, settings, story, onAcceptFix 
                     <span className="ml-auto text-xs text-brand-500 italic">Story 2 added to backlog on accept</span>
                   </div>
                   <div className="grid grid-cols-2 divide-x divide-brand-100">
-                    {fix.splitStories.map((s, i) => (
-                      <div key={i} className="p-3 bg-white">
-                        <div className="flex items-center gap-1.5 mb-1.5">
-                          <span className={`w-4 h-4 rounded-full text-white text-[10px] flex items-center justify-center font-bold shrink-0 ${i === 0 ? 'bg-brand-500' : 'bg-emerald-500'}`}>
-                            {i + 1}
-                          </span>
-                          <p className="text-xs font-semibold text-gray-600">
-                            {i === 0 ? 'This story — streamlined' : 'New story — added to backlog'}
-                          </p>
-                        </div>
-                        <p className="text-xs font-medium text-brand-700">{s.title}</p>
-                        <p className="text-xs text-gray-500 mt-1 leading-relaxed">{s.description}</p>
+                    {/* Story 1 — streamlined; field-level detail is in the diffs below */}
+                    <div className="p-3 bg-white">
+                      <div className="flex items-center gap-1.5 mb-1.5">
+                        <span className="w-4 h-4 rounded-full bg-brand-500 text-white text-[10px] flex items-center justify-center font-bold shrink-0">1</span>
+                        <p className="text-xs font-semibold text-gray-600">This story — streamlined</p>
                       </div>
-                    ))}
+                      <p className="text-xs font-medium text-brand-700">{fix.splitStories[0].title}</p>
+                      <p className="text-xs text-gray-500 mt-1 leading-relaxed">{fix.splitStories[0].description}</p>
+                      <p className="text-[10px] text-brand-400 mt-2 italic">Field-level changes shown below ↓</p>
+                    </div>
+                    {/* Story 2 — show full content so user can verify what it actually contains */}
+                    <div className="p-3 bg-white">
+                      <div className="flex items-center gap-1.5 mb-1.5">
+                        <span className="w-4 h-4 rounded-full bg-emerald-500 text-white text-[10px] flex items-center justify-center font-bold shrink-0">2</span>
+                        <p className="text-xs font-semibold text-gray-600">New story — added to backlog</p>
+                      </div>
+                      <p className="text-xs font-medium text-emerald-700">
+                        {fix.splitNewStory?.title ?? fix.splitStories[1].title}
+                      </p>
+                      {fix.splitNewStory ? (
+                        <>
+                          <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                            As a <strong className="text-gray-700">{fix.splitNewStory.asA}</strong>,{' '}
+                            I want to {fix.splitNewStory.iWantTo}.
+                          </p>
+                          {fix.splitNewStory.acceptanceCriteria.length > 0 && (
+                            <div className="mt-2">
+                              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Acceptance Criteria</p>
+                              <div className="space-y-0.5">
+                                {fix.splitNewStory.acceptanceCriteria.slice(0, 3).map((ac, i) => (
+                                  <div key={i} className="flex gap-1 text-xs text-gray-600 leading-relaxed">
+                                    <CheckCircle className="w-3 h-3 text-emerald-400 shrink-0 mt-0.5" />
+                                    <span>{ac}</span>
+                                  </div>
+                                ))}
+                                {fix.splitNewStory.acceptanceCriteria.length > 3 && (
+                                  <p className="text-[10px] text-gray-400 pl-4">
+                                    +{fix.splitNewStory.acceptanceCriteria.length - 3} more
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                          {fix.splitNewStory.storyPoints != null && (
+                            <span className="inline-block mt-2 text-[10px] font-medium text-gray-500 bg-gray-100 rounded px-1.5 py-0.5">
+                              {fix.splitNewStory.storyPoints} pts
+                            </span>
+                          )}
+                        </>
+                      ) : (
+                        <p className="text-xs text-gray-500 mt-1 leading-relaxed">{fix.splitStories[1].description}</p>
+                      )}
+                    </div>
                   </div>
                 </div>
               )}

@@ -78,6 +78,29 @@ const makeValidation = (
 })
 
 // Valid FixProposal JSON strings returned by the mocked callLLM
+
+// splitNewStory provides full Story 2 content (user sentence, ACs, points)
+const splitNewStory = {
+  epicId: 'epic-1',
+  title: 'Auto-suggest dropdown overlay',
+  asA: 'shopper',
+  iWantTo: 'see product suggestions as I type',
+  soThat: 'I can find items faster without completing my search',
+  acceptanceCriteria: [
+    'Suggestions appear within 150ms of each keystroke',
+    'Dropdown shows top 5 suggestions with product name',
+    'Keyboard navigation supported (arrow keys, Enter, Escape)',
+    'Dismissed on click outside',
+    'Graceful fallback if suggestion API is slow',
+  ],
+  inScope: ['Auto-suggest dropdown', 'Debounced API call'],
+  outOfScope: ['Voice search', 'Search history'],
+  assumptions: ['Depends on keyword search story being live'],
+  crossFunctionalNeeds: ['UX: dropdown interaction spec'],
+  priority: 'High' as const,
+  storyPoints: 3,
+}
+
 const splitFixJSON = JSON.stringify({
   principleKey: 'small',
   summary: 'Story is too large. Recommend splitting into two independent stories.',
@@ -87,10 +110,25 @@ const splitFixJSON = JSON.stringify({
     { title: 'Keyword search with results page', description: 'Basic keyword search and results page.' },
     { title: 'Auto-suggest dropdown overlay',    description: 'Typeahead suggestions as a separate deliverable.' },
   ],
-  splitNewStory: undefined,
+  splitNewStory,
   diffs: [
     { field: 'title', label: 'Story Title', before: 'Full-text product search with auto-suggest', after: 'Keyword search with results page' },
   ],
+  patch: { title: 'Keyword search with results page' },
+})
+
+// Variant with no splitNewStory — Story 2 falls back to splitStories[1] description
+const splitFixNoNewStoryJSON = JSON.stringify({
+  principleKey: 'small',
+  summary: 'Story is too large — split it.',
+  isSplit: true,
+  isSpike: false,
+  splitStories: [
+    { title: 'Keyword search with results page', description: 'Basic keyword search and results page.' },
+    { title: 'Auto-suggest dropdown overlay',    description: 'Typeahead suggestions as a separate deliverable.' },
+  ],
+  splitNewStory: undefined,
+  diffs: [],
   patch: { title: 'Keyword search with results page' },
 })
 
@@ -255,6 +293,71 @@ describe('Fix with AI — split story', () => {
       expect(screen.getByRole('button', { name: /accept/i })).toBeInTheDocument()
       expect(screen.getByRole('button', { name: /dismiss/i })).toBeInTheDocument()
     })
+  })
+
+  it('shows the Story 2 user story sentence in the preview', async () => {
+    renderSection()
+    await clickFixWithAI()
+    await waitFor(() => {
+      expect(screen.getByText(/see product suggestions as I type/i)).toBeInTheDocument()
+    })
+  })
+
+  it('shows Story 2 acceptance criteria in the preview', async () => {
+    renderSection()
+    await clickFixWithAI()
+    await waitFor(() => {
+      expect(screen.getByText(/Suggestions appear within 150ms/i)).toBeInTheDocument()
+      expect(screen.getByText(/Dropdown shows top 5 suggestions/i)).toBeInTheDocument()
+    })
+  })
+
+  it('shows "+N more" when Story 2 has more than 3 ACs', async () => {
+    renderSection()
+    await clickFixWithAI()
+    // splitNewStory has 5 ACs → only 3 shown + "+2 more"
+    await waitFor(() => {
+      expect(screen.getByText('+2 more')).toBeInTheDocument()
+    })
+  })
+
+  it('shows Story 2 story points', async () => {
+    renderSection()
+    await clickFixWithAI()
+    await waitFor(() => {
+      expect(screen.getByText('3 pts')).toBeInTheDocument()
+    })
+  })
+
+  it('shows the "Field-level changes shown below" hint on Story 1', async () => {
+    renderSection()
+    await clickFixWithAI()
+    await waitFor(() => {
+      expect(screen.getByText(/Field-level changes shown below/i)).toBeInTheDocument()
+    })
+  })
+})
+
+// ─── Split story: fallback when splitNewStory is absent ───────────────────────
+
+describe('Fix with AI — split story without splitNewStory', () => {
+  beforeEach(() => {
+    vi.mocked(llmClient.callLLM).mockResolvedValue(splitFixNoNewStoryJSON)
+  })
+
+  it('falls back to splitStories[1] description for Story 2', async () => {
+    renderSection()
+    await clickFixWithAI()
+    await waitFor(() => {
+      expect(screen.getByText('Typeahead suggestions as a separate deliverable.')).toBeInTheDocument()
+    })
+  })
+
+  it('does NOT render the AC section when splitNewStory is absent', async () => {
+    renderSection()
+    await clickFixWithAI()
+    await new Promise(r => setTimeout(r, 200))
+    expect(screen.queryByText('Acceptance Criteria')).not.toBeInTheDocument()
   })
 })
 
