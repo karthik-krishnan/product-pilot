@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import ReactMarkdown from 'react-markdown'
 import { createPortal } from 'react-dom'
 import {
   BookMarked, Send, SkipForward, Sparkles,
@@ -209,7 +210,9 @@ function DiscoveryChat({ epic, settings, context, onComplete, onDismiss }: {
             </div>
             <div className="flex flex-col gap-1.5 max-w-[85%]">
               <div className={`rounded-2xl px-3 py-2 text-sm leading-relaxed ${msg.role === 'assistant' ? 'bg-brand-50 border border-brand-100 rounded-tl-sm' : 'bg-gray-100 rounded-tr-sm'}`}>
-                {msg.content}
+                {msg.role === 'assistant'
+                  ? <div className="prose prose-sm prose-gray max-w-none prose-p:my-1 prose-ul:my-1 prose-li:my-0"><ReactMarkdown>{msg.content}</ReactMarkdown></div>
+                  : msg.content}
               </div>
               {msg.options && msg.options.length > 0 && !msg.selectedOption && !isDone && (
                 <div className="flex flex-wrap gap-1.5">
@@ -390,7 +393,9 @@ function StoryDiscussPanel({ story, epic, settings, context, initialMessages, on
               {msg.role === 'assistant' ? 'AI' : 'Me'}
             </div>
             <div className={`rounded-xl px-3 py-2 text-xs leading-relaxed max-w-[85%] ${msg.role === 'assistant' ? 'bg-brand-50 border border-brand-100 rounded-tl-sm' : 'bg-gray-100 rounded-tr-sm'}`}>
-              {msg.content}
+              {msg.role === 'assistant'
+                ? <div className="prose prose-xs prose-gray max-w-none prose-p:my-0.5 prose-ul:my-0.5 prose-li:my-0"><ReactMarkdown>{msg.content}</ReactMarkdown></div>
+                : msg.content}
             </div>
           </div>
         ))}

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import ReactMarkdown from 'react-markdown'
 import { createPortal } from 'react-dom'
 import { Layers, ChevronRight, Edit3, MessageSquare, X, Tag, ArrowRight, Sparkles, Check, Download, Loader2 } from 'lucide-react'
 import type { Epic, APISettings, ChatEntry, ContextCapture } from '../types'
@@ -204,7 +205,9 @@ function EpicDialog({ epic, allEpics, settings, context, rawRequirements, initia
                       {msg.role === 'assistant' ? 'AI' : 'Me'}
                     </div>
                     <div className={`max-w-[80%] rounded-2xl p-3 text-sm leading-relaxed ${msg.role === 'assistant' ? 'bg-brand-50 border border-brand-100 rounded-tl-sm' : 'bg-gray-100 rounded-tr-sm'}`}>
-                      {msg.content}
+                      {msg.role === 'assistant'
+                        ? <div className="prose prose-sm prose-gray max-w-none prose-p:my-1 prose-ul:my-1 prose-li:my-0"><ReactMarkdown>{msg.content}</ReactMarkdown></div>
+                        : msg.content}
                     </div>
                   </div>
                 ))}
