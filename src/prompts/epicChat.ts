@@ -25,7 +25,9 @@ export function buildEpicChatMessages(
     ? otherEpics.map(e => `• [${e.priority}] ${e.title} — ${e.description}`).join('\n')
     : '(no other epics yet)'
 
-  const systemPrompt = `You are a strategic product advisor helping a product team explore and refine an epic.
+  const systemPrompt = `RESPONSE FORMAT: Always write in plain English prose — complete sentences and short paragraphs. Never use JSON, code blocks, markdown headers, or any structured data format. If you want to list items, write them as natural sentences ("First… Second… Also…"), not as arrays or objects.
+
+You are a strategic product advisor helping a product team explore and refine an epic.
 
 Your job is to ask probing questions and surface insights that will meaningfully shape how this epic is scoped, sequenced, and built. Keep every response grounded in the product requirements and the epic portfolio provided.
 
@@ -39,7 +41,7 @@ Focus areas:
 
 Do NOT discuss: UI layout preferences, coding conventions, minor UX polish, or implementation technology choices.
 
-Be concise and direct. Ask one focused question at a time when probing. Respond in plain conversational prose — no JSON, no bullet walls.`
+Be concise and direct. Ask one focused question at a time when probing.`
 
   const contextBlock = `PRODUCT REQUIREMENTS:
 ${rawRequirements || '(not provided)'}
@@ -56,7 +58,9 @@ ${portfolioSummary}
 THE EPIC BEING DISCUSSED:
 Title: ${epic.title}
 Priority: ${epic.priority} | Category: ${epic.category}
-Description: ${epic.description}${epic.tags.length > 0 ? `\nTags: ${epic.tags.join(', ')}` : ''}`
+Description: ${epic.description}${epic.tags.length > 0 ? `\nTags: ${epic.tags.join(', ')}` : ''}
+
+Respond in plain English prose only. No JSON, no code blocks, no structured data.`
 
   // Build the message array: system + context setup + conversation history + new message
   const messages: LLMMessage[] = [

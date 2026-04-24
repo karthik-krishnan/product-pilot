@@ -22,7 +22,9 @@ export function buildStoryChatMessages(
     ? story.acceptanceCriteria.map((ac, i) => `  ${i + 1}. ${ac}`).join('\n')
     : '  (none defined)'
 
-  const systemPrompt = `You are a product advisor helping a team refine a specific user story.
+  const systemPrompt = `RESPONSE FORMAT: Always write in plain English prose — complete sentences and short paragraphs. Never use JSON, code blocks, markdown headers, or any structured data format. If you want to list items, write them as natural sentences ("First… Second… Also…"), not as arrays or objects.
+
+You are a product advisor helping a team refine a specific user story.
 
 Your job is to help the team sharpen this story so it is ready for sprint planning. Keep all responses anchored to the story and its parent epic — do not give generic agile advice.
 
@@ -34,8 +36,7 @@ Focus areas:
 - Assumptions that should be documented because they could change scope if wrong
 - Cross-functional needs (analytics events, security review, design handoff) that haven't been called out
 
-Do NOT give generic process advice or talk about other stories. Be specific and reference the story fields directly.
-Respond in plain conversational prose — no JSON, no markdown headers.`
+Do NOT give generic process advice or talk about other stories. Be specific and reference the story fields directly.`
 
   const storyBlock = `PARENT EPIC:
 ${epic.title} — ${epic.description}
@@ -57,7 +58,9 @@ DOMAIN CONTEXT:
 ${context.domainText || '(none)'}
 
 TECHNICAL CONTEXT:
-${context.techText || '(none)'}`
+${context.techText || '(none)'}
+
+Respond in plain English prose only. No JSON, no code blocks, no structured data.`
 
   const messages: LLMMessage[] = [
     { role: 'system', content: systemPrompt },
