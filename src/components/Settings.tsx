@@ -89,7 +89,7 @@ function ContextField({
       </div>
       <textarea
         className="textarea-field text-xs"
-        rows={4}
+        rows={6}
         placeholder={placeholder}
         value={value}
         onChange={e => onChange(e.target.value)}
@@ -187,7 +187,7 @@ export default function Settings({ settings, enterpriseConfig, initialTab = 'ai'
         </div>
 
         {/* Body */}
-        <div className="overflow-y-auto flex-1 px-6 py-5 space-y-6">
+        <div className="overflow-y-auto flex-1 min-h-0 px-6 py-5 space-y-6">
 
           {/* ── AI & Assistance tab ── */}
           {tab === 'ai' && (<>

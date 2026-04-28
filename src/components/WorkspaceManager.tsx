@@ -66,7 +66,7 @@ function ContextSection({
         <div className={`w-6 h-6 rounded-md flex items-center justify-center ${accentColor}`}>{icon}</div>
         <span className="text-xs font-semibold text-gray-700">{label}</span>
       </div>
-      <textarea className="textarea-field text-xs" rows={4} placeholder={placeholder}
+      <textarea className="textarea-field text-xs" rows={6} placeholder={placeholder}
         value={textValue} onChange={e => onTextChange(e.target.value)} />
       {/* Drop zone */}
       <div
@@ -248,7 +248,7 @@ export default function WorkspaceManager({
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto px-6 py-5 flex flex-col gap-4">
+        <div className="flex-1 min-h-0 overflow-y-auto px-6 py-5 flex flex-col gap-4">
           {/* Info banner */}
           <div className="flex items-start gap-3 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-xs text-gray-600">
             <div className="shrink-0 mt-0.5">💡</div>
