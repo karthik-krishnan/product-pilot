@@ -32,7 +32,7 @@ export const ASSISTANCE_LEVELS: LevelMeta[] = [
   {
     id: 2,
     name: 'Collaborative',
-    tagline: 'Balanced dialogue',
+    tagline: 'Balanced dialog',
     description: 'A short back-and-forth to align on scope, personas, and cross-functional needs.',
     range: [2, 3],
     color: 'text-brand-600',

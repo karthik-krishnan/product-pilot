@@ -90,7 +90,7 @@ If you don't have load data yet, it's better to state an assumption ("designed f
   if (/auth|login|permission|role|access|unauthori|session|token/.test(q)) {
     return `Authentication and authorisation edge cases are some of the most commonly missed ACs. The main ones to check for this story: what happens when the user's session expires mid-flow (are they redirected to login and returned to the same state afterward, or do they lose progress)? What happens if they have the right role when they start the flow but their permissions change mid-session?
 
-If this story involves data that's scoped to a role or organisation, there should also be an explicit AC about what a user sees if they try to access a resource they're not permitted to view — a 403 with a clear message, not a 404 that leaks information about whether the resource exists.
+If this story involves data that's scoped to a role or organization, there should also be an explicit AC about what a user sees if they try to access a resource they're not permitted to view — a 403 with a clear message, not a 404 that leaks information about whether the resource exists.
 
 Are there multiple user roles that interact with this story differently, and have all their paths been covered in the ACs?`
   }
@@ -108,7 +108,7 @@ If this story touches an external service, the failure mode of that service shou
 
 A useful test: for each AC, ask "can QA write an automated test for this, or clearly mark it pass/fail manually?" If the answer is "it depends" or "the developer would need to judge", the criterion needs to be tightened.
 
-It's also worth checking that the ACs cover the unhappy paths, not just the success flow. Most stories have 1–2 success ACs and zero failure ACs, which leaves the error handling behaviour undefined until QA finds it. Which ACs do you want to sharpen first?`
+It's also worth checking that the ACs cover the unhappy paths, not just the success flow. Most stories have 1–2 success ACs and zero failure ACs, which leaves the error handling behavior undefined until QA finds it. Which ACs do you want to sharpen first?`
   }
 
   if (/scope|in.?scope|out.?of.?scope|bound|include|exclude|mvp/.test(q)) {
@@ -122,7 +122,7 @@ A good rule of thumb: anything that would take more than a day to implement that
   // default
   return `A couple of things worth looking at in this story. First, check whether all the acceptance criteria are specific enough to be tested without interpretation — any AC that uses words like "correctly", "properly", or "as expected" needs a concrete measurable threshold instead.
 
-Second, the out-of-scope list is most valuable when it explicitly addresses the things a developer might reasonably assume are included. If there are obvious related behaviours that aren't in this story, naming them explicitly prevents scope debates during the sprint.
+Second, the out-of-scope list is most valuable when it explicitly addresses the things a developer might reasonably assume are included. If there are obvious related behaviors that aren't in this story, naming them explicitly prevents scope debates during the sprint.
 
 Is there a specific AC or scope boundary you'd like to work through?`
 }

@@ -278,7 +278,7 @@ export default function WorkspaceManager({
             <Layers className="w-4 h-4 text-brand-600" />
           </div>
           <div>
-            <h2 className="text-sm font-semibold text-gray-900">Organisation & Workspaces</h2>
+            <h2 className="text-sm font-semibold text-gray-900">Organization & Workspaces</h2>
             <p className="text-xs text-gray-400">Configure company-wide context and team workspaces</p>
           </div>
           <button onClick={onClose} className="ml-auto text-gray-400 hover:text-gray-600 p-1 rounded-lg hover:bg-gray-100">
@@ -309,7 +309,7 @@ export default function WorkspaceManager({
           {tab === 'enterprise' && (
             <div className="flex flex-col gap-5">
               <div>
-                <label className="text-xs font-semibold text-gray-700 mb-1.5 block">Organisation name</label>
+                <label className="text-xs font-semibold text-gray-700 mb-1.5 block">Organization name</label>
                 <input
                   className="input-field"
                   placeholder="e.g. Acme Corp, RetailCo, HealthFirst"
