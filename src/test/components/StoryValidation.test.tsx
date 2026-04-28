@@ -8,7 +8,7 @@
  *     header above the diffs — the targeted UI change from the last commit.
  *  2. Standard (non-split) fix: no "Story 1" header shown.
  *  3. Quality Score display and INVEST Breakdown table smoke test.
- *  4. Fix panel dismiss / toggle behaviour.
+ *  4. Fix panel dismiss / toggle behavior.
  *
  * Mock strategy:
  *  - Only callLLM is replaced (vi.fn). Everything else (parseJSON, isDemo, …)

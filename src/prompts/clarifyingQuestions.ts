@@ -1,11 +1,13 @@
 import type { LLMMessage } from '../services/llm/client'
-import type { ContextCapture, ClarifyingQuestion } from '../types'
+import type { EnterpriseConfig, Workspace, ClarifyingQuestion } from '../types'
 import { parseJSON } from '../services/llm/client'
 import { SYSTEM_PROMPT } from './system'
+import { buildContextBlock } from '../utils/contextUtils'
 
 export function buildClarifyingQuestionsPrompt(
   requirements: string,
-  context: ContextCapture,
+  enterprise: EnterpriseConfig | null,
+  workspace: Workspace | null,
   count: number,
 ): LLMMessage[] {
   return [
@@ -14,11 +16,8 @@ export function buildClarifyingQuestionsPrompt(
       role: 'user',
       content: `You are helping a BA clarify requirements before writing epics. Generate exactly ${count} clarifying question(s) that resolve the highest-impact ambiguities — ones where the answer will materially change the scope, architecture, or delivery approach of what gets built.
 
-DOMAIN CONTEXT:
-${context.domainText || '(none provided)'}
-
-TECHNICAL CONTEXT:
-${context.techText || '(none provided)'}
+CONTEXT:
+${buildContextBlock(enterprise, workspace)}
 
 RAW REQUIREMENTS:
 ${requirements}

@@ -1,11 +1,12 @@
 import type { LLMMessage } from '../services/llm/client'
-import type { Epic, Story, ContextCapture, ChatEntry } from '../types'
+import type { Epic, Story, EnterpriseConfig, Workspace, ChatEntry } from '../types'
+import { buildContextBlock } from '../utils/contextUtils'
 
 /**
  * Builds the full message array for a multi-turn story discussion.
  *
  * Context injected:
- *  - Domain & tech context
+ *  - Enterprise + workspace context (company-wide then team-specific)
  *  - Parent epic (for scope anchoring)
  *  - The full story (all fields: ACs, scope, assumptions, cross-functional needs)
  *  - Conversation history so far
@@ -14,7 +15,8 @@ import type { Epic, Story, ContextCapture, ChatEntry } from '../types'
 export function buildStoryChatMessages(
   story: Story,
   epic: Epic,
-  context: ContextCapture,
+  enterprise: EnterpriseConfig | null,
+  workspace: Workspace | null,
   history: ChatEntry[],
   userMessage: string,
 ): LLMMessage[] {
@@ -54,11 +56,8 @@ Out of Scope: ${story.outOfScope.length > 0 ? story.outOfScope.join('; ') : '(no
 Assumptions: ${story.assumptions.length > 0 ? story.assumptions.join('; ') : '(none)'}
 Cross-functional Needs: ${story.crossFunctionalNeeds.length > 0 ? story.crossFunctionalNeeds.join('; ') : '(none)'}
 
-DOMAIN CONTEXT:
-${context.domainText || '(none)'}
-
-TECHNICAL CONTEXT:
-${context.techText || '(none)'}
+CONTEXT:
+${buildContextBlock(enterprise, workspace)}
 
 Respond in plain English prose only. No JSON, no code blocks, no structured data.`
 

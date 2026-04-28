@@ -10,7 +10,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import StoryBreakdown from '../../components/StoryBreakdown'
-import type { Epic, Story, APISettings, ContextCapture } from '../../types'
+import type { Epic, Story, APISettings } from '../../types'
 
 // ─── Mock heavy dependencies ──────────────────────────────────────────────────
 
@@ -71,10 +71,6 @@ const settings: APISettings = {
   assistanceLevel: 2,
 }
 
-const context: ContextCapture = {
-  domainText: '', domainFiles: [], techText: '', techFiles: [],
-}
-
 function renderBreakdown(story: Story = makeStory()) {
   const epic = makeEpic([story])
   return render(
@@ -82,7 +78,8 @@ function renderBreakdown(story: Story = makeStory()) {
       epicId="epic-1"
       epics={[epic]}
       settings={settings}
-      context={context}
+      enterprise={null}
+      workspace={null}
       storyValidations={{}}
       storyAcceptedFixes={{}}
       storyChats={{}}

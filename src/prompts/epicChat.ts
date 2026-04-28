@@ -1,11 +1,12 @@
 import type { LLMMessage } from '../services/llm/client'
-import type { Epic, ContextCapture, ChatEntry } from '../types'
+import type { Epic, EnterpriseConfig, Workspace, ChatEntry } from '../types'
+import { buildContextBlock } from '../utils/contextUtils'
 
 /**
  * Builds the full message array for a multi-turn epic chat.
  *
  * Context injected:
- *  - Domain & tech context
+ *  - Enterprise + workspace context (company-wide then team-specific)
  *  - Raw product requirements
  *  - Full epic portfolio (so the AI can reason about dependencies & overlap)
  *  - The specific epic being discussed
@@ -15,7 +16,8 @@ import type { Epic, ContextCapture, ChatEntry } from '../types'
 export function buildEpicChatMessages(
   epic: Epic,
   allEpics: Epic[],
-  context: ContextCapture,
+  enterprise: EnterpriseConfig | null,
+  workspace: Workspace | null,
   rawRequirements: string,
   history: ChatEntry[],
   userMessage: string,
@@ -46,11 +48,8 @@ Be concise and direct. Ask one focused question at a time when probing.`
   const contextBlock = `PRODUCT REQUIREMENTS:
 ${rawRequirements || '(not provided)'}
 
-DOMAIN CONTEXT:
-${context.domainText || '(none)'}
-
-TECHNICAL CONTEXT:
-${context.techText || '(none)'}
+CONTEXT:
+${buildContextBlock(enterprise, workspace)}
 
 EPIC PORTFOLIO — other epics for this product:
 ${portfolioSummary}
@@ -62,11 +61,9 @@ Description: ${epic.description}${epic.tags.length > 0 ? `\nTags: ${epic.tags.jo
 
 Respond in plain English prose only. No JSON, no code blocks, no structured data.`
 
-  // Build the message array: system + context setup + conversation history + new message
   const messages: LLMMessage[] = [
     { role: 'system',    content: systemPrompt },
     { role: 'user',      content: contextBlock },
-    // Seed the assistant's opening so history has proper alternation
     ...history
       .filter(m => m.role === 'user' || m.role === 'assistant')
       .map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })),

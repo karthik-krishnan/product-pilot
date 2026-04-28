@@ -1,4 +1,4 @@
-import type { Epic, ClarifyingQuestion, INVESTValidation, Story, FixProposal } from '../types'
+import type { Epic, ClarifyingQuestion, INVESTValidation, Story, FixProposal, EnterpriseConfig, Workspace } from '../types'
 
 export const MOCK_CLARIFYING_QUESTIONS: ClarifyingQuestion[] = [
   {
@@ -253,7 +253,7 @@ export const MOCK_STORY_LIST: Story[] = [
     epicId: 'epic-2',
     title: 'AI-powered product recommendations',
     asA: 'shopper',
-    iWantTo: 'see personalised product recommendations on the search results page and product detail page',
+    iWantTo: 'see personalized product recommendations on the search results page and product detail page',
     soThat: 'I can discover relevant products I might not have thought to search for',
     acceptanceCriteria: [
       'Recommendations carousel visible below search results',
@@ -263,7 +263,7 @@ export const MOCK_STORY_LIST: Story[] = [
       'Recommendations load asynchronously (no blocking)',
     ],
     inScope: ['Integration with Recommendation Service v2 API', 'Async carousel loading', 'Trending fallback'],
-    outOfScope: ['Custom ML model training', 'Real-time behavioural tracking (handled by existing service)'],
+    outOfScope: ['Custom ML model training', 'Real-time behavioral tracking (handled by existing service)'],
     assumptions: ['Recommendation Service is stable and meets SLA', 'Auth token passed for personalisation if user is logged in'],
     crossFunctionalNeeds: ['Platform: Recommendation Service SLA guarantee', 'Analytics: recommendation click-through events'],
     priority: 'Medium',
@@ -334,7 +334,7 @@ export const MOCK_STORY_LIST: Story[] = [
   {
     id: 'story-s7',
     epicId: 'epic-2',
-    title: 'Mobile-optimised search experience',
+    title: 'Mobile-optimized search experience',
     asA: 'shopper on a mobile device',
     iWantTo: 'use the search and filter features with a touch-friendly interface',
     soThat: 'I have the same discovery capability as desktop without pinching or horizontal scrolling',
@@ -383,7 +383,7 @@ export const MOCK_INVEST_VALIDATION: INVESTValidation = {
     suggestions: [
       'Add a time-boxed spike (1–2 days) to validate the Elasticsearch query approach before estimating',
       'Clarify whether BM25 or a custom relevance model is expected — this significantly changes complexity',
-      'Define the fallback behaviour explicitly so edge cases can be factored into the estimate',
+      'Define the fallback behavior explicitly so edge cases can be factored into the estimate',
     ],
   },
   small: {
@@ -600,3 +600,98 @@ export const MOCK_INVEST_FIXES: Record<string, FixProposal> = {
     },
   },
 }
+
+// ─── Demo Enterprise + Workspaces ─────────────────────────────────────────────
+
+export const DEMO_ENTERPRISE_CONFIG: EnterpriseConfig = {
+  name: 'CrunchiBite Corp',
+  domainText: `CrunchiBite Corp is a quick-service restaurant (QSR) chain operating 1,400+ locations across the US and Canada. Revenue model: franchised (70%) and corporate-owned (30%) locations. Annual digital revenue exceeds $2.1B.
+
+Key business lines: in-store ordering, drive-through, digital ordering (web + app), catering, loyalty & rewards, delivery partnerships (DoorDash, Uber Eats, GrubHub).
+
+Primary users: Guests (end customers), Crew Members (in-store staff), Kitchen Display operators, Franchise Owners, Corporate Operations, Marketing team.
+
+Regulatory: PCI-DSS Level 1 for all payment processing. CCPA/GDPR for customer data. Health code regulations vary by state/province.
+
+Business rules:
+- All digital orders must confirm within 8 seconds or auto-cancel
+- Loyalty points expire after 12 months of inactivity
+- Franchise owners have read-only access to aggregated operational data — no PII
+- Menu changes must propagate to all channels within 15 minutes of publish`,
+
+  domainFiles: [],
+
+  techText: `Cloud: AWS (primary), multi-region (us-east-1, us-west-2, ca-central-1)
+Auth: AWS Cognito for guest-facing; Okta SAML for internal/franchise staff
+Event bus: AWS EventBridge for cross-service events; SQS for async order processing
+Data: Aurora PostgreSQL 15 (transactional), DynamoDB (session/cart), S3 + Athena (analytics)
+CDN: CloudFront for static assets and API caching
+API style: REST + OpenAPI 3.1 for external; gRPC for internal service-to-service
+Shared services: Notification Service (email/push/SMS), Menu Catalog Service, Pricing Engine, Fraud Detection (Kount)
+Frontend: React 18 + TypeScript (web), React Native (mobile app)
+Observability: Datadog APM, CloudWatch, PagerDuty alerting
+Architectural decisions: event sourcing for orders (ADR-008), BFF pattern for mobile (ADR-014), feature flags via LaunchDarkly`,
+
+  techFiles: [],
+}
+
+export const DEMO_WORKSPACES: Workspace[] = [
+  {
+    id: 'ws-demo-digital',
+    name: 'Digital Ordering Team',
+    domainText: `Responsible for web and mobile ordering experiences — menu browsing, cart, checkout, upsell, order tracking, and guest account management.
+
+Primary personas: Logged-in loyalty members, Guest (unauthenticated) orderers, Catering coordinators.
+Key metrics: conversion rate (target >3.2%), average order value, cart abandonment rate (<40%), reorder rate.
+Current pain points: multi-item customisation is error-prone on mobile; guest checkout has 6-step flow (industry benchmark is 3); no real-time order status on web.
+Upcoming initiatives: AI-powered upsell engine (Q3), saved order templates for catering (Q4).`,
+    domainFiles: [],
+    techText: `Frontend: React 18 (web), React Native 0.73 (iOS/Android)
+BFF: Node.js + GraphQL (Apollo Server 4) — ADR-014
+Order Service API: REST, v3 (v2 deprecated Q2)
+Cart: DynamoDB with 24h TTL for guest sessions; Cognito user pools for authenticated
+Payment: Stripe (credit/debit), Apple Pay, Google Pay — PCI-DSS scope applies
+Real-time order tracking: WebSocket via API Gateway; fallback to 10s polling
+Feature flags: LaunchDarkly — all new checkout changes gated behind flags`,
+    techFiles: [],
+  },
+  {
+    id: 'ws-demo-loyalty',
+    name: 'Loyalty & Rewards Team',
+    domainText: `Owns the CrunchiBite Rewards program — point earning, redemption, tier management, personalized offers, and partner integrations.
+
+Programme tiers: Bronze (0–499 pts), Silver (500–1,999 pts), Gold (2,000+ pts). Points: 10 pts per $1 spent.
+Redemption: $1 off = 100 pts; Free item rewards at set point thresholds.
+Offers: personalized offers generated by ML pipeline; targeted by purchase history, location, tier.
+Key metrics: program enrollment rate, monthly active loyalty users, redemption rate, offer conversion rate.
+Current pain points: offer delivery has 4h lag from campaign publish; Silver→Gold upgrade notification is manual batch job; no cross-channel redemption (can't redeem web points in-store seamlessly).`,
+    domainFiles: [],
+    techText: `Loyalty Engine: Java 17 Spring Boot microservice; points ledger in Aurora PostgreSQL
+Offer Engine: Python FastAPI; ML models served via SageMaker endpoints
+Campaign management: Braze for push/email delivery; Segment for audience building
+Event triggers: EventBridge rules — order.completed, offer.viewed, tier.changed
+Real-time balance: Redis cache (60s TTL); authoritative source is PostgreSQL ledger
+Partner integrations: Marriott Bonvoy points transfer (monthly batch), Visa offers (webhook)
+Analytics: Amplitude for funnel analysis; dbt models in Redshift for loyalty KPI reporting`,
+    techFiles: [],
+  },
+  {
+    id: 'ws-demo-kitchen',
+    name: 'Kitchen & Operations Team',
+    domainText: `Responsible for kitchen display systems (KDS), order routing, drive-through timer management, and franchise operations dashboards.
+
+Primary users: Kitchen crew (prepare orders), Expeditors (assemble and hand off), Shift managers, Franchise owners (ops dashboard).
+Key metrics: average ticket time (target <4 min), order accuracy rate (target >98.5%), drive-through speed of service.
+Current pain points: KDS doesn't prioritize by order type (dine-in vs mobile vs drive-through); franchise owners can't see real-time labour vs sales ratio; manual void process takes ~90 seconds.
+Upcoming: AI-driven order routing based on station load (pilot Q3).`,
+    domainFiles: [],
+    techText: `KDS: Electron app on hardened Windows tablets (offline-capable, syncs via WebSocket)
+Order routing: Kotlin microservice; rule engine based on order type, station capacity, item category
+Drive-through timers: custom IoT integration via MQTT broker (AWS IoT Core)
+Franchise dashboard: React web app; read-only aggregated data from Redshift
+Offline resilience: SQLite on KDS devices; reconciliation job syncs when connection restored
+Hardware: Star Micronics receipt printers (USB + Ethernet); Zebra handheld scanners for pickup shelf
+Alerting: PagerDuty integration for KDS offline >2 min; Slack alerts for ticket time SLA breaches`,
+    techFiles: [],
+  },
+]

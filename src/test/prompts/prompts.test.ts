@@ -4,14 +4,7 @@ import { parseEpics, buildGenerateEpicsPrompt } from '../../prompts/generateEpic
 import { parseStories } from '../../prompts/generateStories'
 import { parseINVESTValidation, buildValidateINVESTPrompt } from '../../prompts/validateINVEST'
 import { parseFixProposal } from '../../prompts/fixINVEST'
-import type { ContextCapture, Story } from '../../types'
-
-const emptyContext: ContextCapture = {
-  domainText: '',
-  domainFiles: [],
-  techText: '',
-  techFiles: [],
-}
+import type { Story } from '../../types'
 
 const mockStory: Story = {
   id: 'story-1',
@@ -61,26 +54,26 @@ describe('parseClarifyingQuestions', () => {
 
 describe('buildClarifyingQuestionsPrompt', () => {
   it('returns messages array with system and user roles', () => {
-    const messages = buildClarifyingQuestionsPrompt('Build a marketplace', emptyContext, 3)
+    const messages = buildClarifyingQuestionsPrompt('Build a marketplace', null, null, 3)
     expect(messages.some(m => m.role === 'system')).toBe(true)
     expect(messages.some(m => m.role === 'user')).toBe(true)
   })
 
   it('embeds the requirements in the user message', () => {
-    const messages = buildClarifyingQuestionsPrompt('Build a marketplace', emptyContext, 3)
+    const messages = buildClarifyingQuestionsPrompt('Build a marketplace', null, null, 3)
     const userMsg = messages.find(m => m.role === 'user')!
     expect(userMsg.content).toContain('Build a marketplace')
   })
 
   it('embeds the requested question count', () => {
-    const messages = buildClarifyingQuestionsPrompt('Requirements', emptyContext, 2)
+    const messages = buildClarifyingQuestionsPrompt('Requirements', null, null, 2)
     const userMsg = messages.find(m => m.role === 'user')!
     expect(userMsg.content).toContain('2')
   })
 
-  it('embeds domain context when provided', () => {
-    const ctx: ContextCapture = { ...emptyContext, domainText: 'Healthcare domain' }
-    const messages = buildClarifyingQuestionsPrompt('Req', ctx, 1)
+  it('embeds domain context when provided via workspace', () => {
+    const workspace = { id: 'w1', name: 'Team', domainText: 'Healthcare domain', domainFiles: [], techText: '', techFiles: [] }
+    const messages = buildClarifyingQuestionsPrompt('Req', null, workspace, 1)
     const userMsg = messages.find(m => m.role === 'user')!
     expect(userMsg.content).toContain('Healthcare domain')
   })

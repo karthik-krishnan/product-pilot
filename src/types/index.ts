@@ -17,6 +17,24 @@ export interface APISettings {
   assistanceLevel: AssistanceLevel
 }
 
+export interface EnterpriseConfig {
+  name: string
+  domainText: string
+  domainFiles: UploadedFile[]
+  techText: string
+  techFiles: UploadedFile[]
+}
+
+export interface Workspace {
+  id: string
+  name: string
+  domainText: string
+  domainFiles: UploadedFile[]
+  techText: string
+  techFiles: UploadedFile[]
+}
+
+/** @deprecated Use EnterpriseConfig + Workspace instead */
 export interface ContextCapture {
   domainText: string
   domainFiles: UploadedFile[]
@@ -114,17 +132,30 @@ export interface INVESTItem {
 }
 
 export type AppStep =
-  | 'settings'
-  | 'context'
   | 'requirements'
   | 'epics'
 
 export type ChatEntry = { id: string; role: 'user' | 'assistant'; content: string; options?: string[]; selectedOption?: string }
 
+/** All session data scoped to a single workspace — persisted across workspace switches. */
+export interface WorkspaceSession {
+  rawRequirements: string
+  clarifyingQuestions: ClarifyingQuestion[]
+  clarifyingComplete: boolean
+  epics: Epic[]
+  storyValidations: Record<string, INVESTValidation>
+  storyAcceptedFixes: Record<string, string[]>
+  epicChats: Record<string, ChatEntry[]>
+  storyChats: Record<string, ChatEntry[]>
+}
+
 export interface AppState {
   currentStep: AppStep
   settings: APISettings
-  context: ContextCapture
+  enterpriseConfig: EnterpriseConfig | null
+  workspaces: Workspace[]
+  activeWorkspaceId: string | null
+  workspaceSessions: Record<string, WorkspaceSession>   // keyed by workspace id
   rawRequirements: string
   clarifyingQuestions: ClarifyingQuestion[]
   clarifyingComplete: boolean

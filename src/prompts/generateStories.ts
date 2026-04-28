@@ -1,11 +1,13 @@
 import type { LLMMessage } from '../services/llm/client'
-import type { ContextCapture, Epic, ClarifyingQuestion, Story } from '../types'
+import type { EnterpriseConfig, Workspace, Epic, ClarifyingQuestion, Story } from '../types'
 import { parseJSON } from '../services/llm/client'
 import { SYSTEM_PROMPT } from './system'
+import { buildContextBlock } from '../utils/contextUtils'
 
 export function buildGenerateStoriesPrompt(
   epic: Epic,
-  context: ContextCapture,
+  enterprise: EnterpriseConfig | null,
+  workspace: Workspace | null,
   questions: ClarifyingQuestion[],
 ): LLMMessage[] {
   const qaBlock = questions.length > 0
@@ -18,11 +20,8 @@ export function buildGenerateStoriesPrompt(
       role: 'user',
       content: `You are a senior product manager breaking down an epic into a complete, production-ready set of user stories for a real engineering team.
 
-DOMAIN CONTEXT:
-${context.domainText || '(none provided)'}
-
-TECHNICAL CONTEXT:
-${context.techText || '(none provided)'}
+CONTEXT:
+${buildContextBlock(enterprise, workspace)}
 
 EPIC:
 Title: ${epic.title}
@@ -50,13 +49,13 @@ BEFORE writing any stories, mentally walk through ALL of the following coverage 
 11. PERMISSIONS & ACCESS CONTROL — who can see/do what; unauthorised state handling
 12. NOTIFICATIONS & COMMUNICATIONS — emails, in-app alerts, webhooks triggered by actions
 13. AUDIT & HISTORY — activity logs, change history, who did what and when
-14. MOBILE & RESPONSIVE — touch targets, layout differences, device-specific behaviour
-15. ACCESSIBILITY — keyboard navigation, screen reader support, colour contrast, ARIA labels
+14. MOBILE & RESPONSIVE — touch targets, layout differences, device-specific behavior
+15. ACCESSIBILITY — keyboard navigation, screen reader support, color contrast, ARIA labels
 16. PERFORMANCE — load time SLAs, caching, lazy loading where the epic implies scale
 17. INTEGRATIONS — third-party systems, webhooks, data sync, API contracts
 18. REPORTING & ANALYTICS — dashboards, exports, event tracking this feature must emit
 19. ONBOARDING & FIRST-RUN — tooltips, walkthroughs, empty-state CTAs for new users
-20. SETTINGS & PREFERENCES — user-configurable behaviour within this feature
+20. SETTINGS & PREFERENCES — user-configurable behavior within this feature
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -89,7 +88,7 @@ Rules:
 - outOfScope must name real things users would reasonably expect, not obvious non-starters.
 - crossFunctionalNeeds must name the specific team or system and the specific ask — not just "talk to Analytics".
 - Do not pad with trivial stories. Do not omit real capabilities to hit a lower count. A thorough epic breakdown is typically 8–20 stories.
-- Prioritise ruthlessly: High = must-have for launch, Medium = important but not blocking, Low = nice-to-have or post-launch.`,
+- Prioritize ruthlessly: High = must-have for launch, Medium = important but not blocking, Low = nice-to-have or post-launch.`,
     },
   ]
 }

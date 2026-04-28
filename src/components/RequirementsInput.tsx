@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Send, SkipForward, Sparkles, MessageSquare, AlertCircle, Loader2 } from 'lucide-react'
-import type { APISettings, ContextCapture, ClarifyingQuestion, ChatMessage, Epic } from '../types'
+import type { APISettings, EnterpriseConfig, Workspace, ClarifyingQuestion, ChatMessage, Epic } from '../types'
+import { getAllContextFiles } from '../utils/contextUtils'
 import ChatBubble, { TypingIndicator } from './ChatBubble'
 import { getQuestionCount } from '../utils/assistanceLevels'
 import { callLLM, isLiveMode } from '../services/llm/client'
@@ -12,7 +13,8 @@ interface Props {
   clarifyingQuestions: ClarifyingQuestion[]
   clarifyingComplete: boolean
   settings: APISettings
-  context: ContextCapture
+  enterprise: EnterpriseConfig | null
+  workspace: Workspace | null
   onRequirementsChange: (r: string) => void
   onClarifyingComplete: (questions: ClarifyingQuestion[]) => void
   onGenerateEpics: (epics: Epic[]) => void
@@ -23,7 +25,8 @@ type Phase = 'input' | 'clarifying' | 'done'
 export default function RequirementsInput({
   rawRequirements,
   settings,
-  context,
+  enterprise,
+  workspace,
   onRequirementsChange,
   onClarifyingComplete,
   onGenerateEpics,
@@ -65,9 +68,9 @@ export default function RequirementsInput({
     })
     try {
       const raw = await callLLM(
-        buildClarifyingQuestionsPrompt(localReqs, context, questionCount),
+        buildClarifyingQuestionsPrompt(localReqs, enterprise, workspace, questionCount),
         settings,
-        [...context.domainFiles, ...context.techFiles],
+        getAllContextFiles(enterprise, workspace),
         'clarifying-questions',
       )
       const qs = parseClarifyingQuestions(raw)
@@ -134,9 +137,9 @@ export default function RequirementsInput({
     setError(null)
     try {
       const raw = await callLLM(
-        buildGenerateEpicsPrompt(localReqs, context, questions),
+        buildGenerateEpicsPrompt(localReqs, enterprise, workspace, questions),
         settings,
-        [...context.domainFiles, ...context.techFiles],
+        getAllContextFiles(enterprise, workspace),
         'generate-epics',
       )
       onGenerateEpics(parseEpics(raw))
