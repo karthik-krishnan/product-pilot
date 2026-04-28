@@ -57,7 +57,8 @@ function renderEpicsView(epics: Epic[], settings: APISettings) {
     <EpicsView
       epics={epics}
       settings={settings}
-      context={{ domainText: '', domainFiles: [], techText: '', techFiles: [] }}
+      enterprise={null}
+      workspace={null}
       rawRequirements=""
       epicChats={{}}
       onEpicsChange={vi.fn()}

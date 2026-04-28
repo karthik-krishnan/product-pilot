@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import ReactMarkdown from 'react-markdown'
 import { createPortal } from 'react-dom'
 import { Layers, ChevronRight, Edit3, MessageSquare, X, Tag, ArrowRight, Sparkles, Check, Download, Loader2 } from 'lucide-react'
-import type { Epic, APISettings, ChatEntry, ContextCapture } from '../types'
+import type { Epic, APISettings, ChatEntry, EnterpriseConfig, Workspace } from '../types'
 import { MOCK_EPICS } from '../data/mockData'
 import { exportAllToExcel } from '../utils/export'
 import JiraPushModal from './JiraPushModal'
@@ -37,7 +37,8 @@ interface EpicDialogProps {
   epic: Epic
   allEpics: Epic[]
   settings: APISettings
-  context: ContextCapture
+  enterprise: EnterpriseConfig | null
+  workspace: Workspace | null
   rawRequirements: string
   initialChat?: ChatEntry[]
   onClose: () => void
@@ -46,7 +47,7 @@ interface EpicDialogProps {
   onChatUpdate?: (messages: ChatEntry[]) => void
 }
 
-function EpicDialog({ epic, allEpics, settings, context, rawRequirements, initialChat, onClose, onSave, onBreakIntoStories, onChatUpdate }: EpicDialogProps) {
+function EpicDialog({ epic, allEpics, settings, enterprise, workspace, rawRequirements, initialChat, onClose, onSave, onBreakIntoStories, onChatUpdate }: EpicDialogProps) {
   const [editedEpic, setEditedEpic] = useState(epic)
   const [activeTab, setActiveTab] = useState<'edit' | 'chat'>('edit')
   const [chatInput, setChatInput] = useState('')
@@ -81,7 +82,7 @@ function EpicDialog({ epic, allEpics, settings, context, rawRequirements, initia
     setIsTyping(true)
     try {
       const messages = buildEpicChatMessages(
-        epic, allEpics, context, rawRequirements,
+        epic, allEpics, enterprise, workspace, rawRequirements,
         chatMessages, // history before the new message
         text,
       )
@@ -314,7 +315,8 @@ function EpicCard({ epic, index, onOpen, onBreakIntoStories }: EpicCardProps) {
 interface Props {
   epics: Epic[]
   settings: APISettings
-  context: ContextCapture
+  enterprise: EnterpriseConfig | null
+  workspace: Workspace | null
   rawRequirements: string
   epicChats: Record<string, ChatEntry[]>
   onEpicsChange: (epics: Epic[]) => void
@@ -322,7 +324,7 @@ interface Props {
   onEpicChatUpdate: (epicId: string, messages: ChatEntry[]) => void
 }
 
-export default function EpicsView({ epics: propEpics, settings, context, rawRequirements, epicChats, onEpicsChange, onBreakIntoStories, onEpicChatUpdate }: Props) {
+export default function EpicsView({ epics: propEpics, settings, enterprise, workspace, rawRequirements, epicChats, onEpicsChange, onBreakIntoStories, onEpicChatUpdate }: Props) {
   const epics = propEpics.length > 0 ? propEpics : (isDemo(settings) ? MOCK_EPICS : [])
   const [selectedEpic, setSelectedEpic] = useState<Epic | null>(null)
   const [showJira, setShowJira] = useState(false)
@@ -455,7 +457,8 @@ export default function EpicsView({ epics: propEpics, settings, context, rawRequ
           epic={selectedEpic}
           allEpics={epics}
           settings={settings}
-          context={context}
+          enterprise={enterprise}
+          workspace={workspace}
           rawRequirements={rawRequirements}
           initialChat={epicChats[selectedEpic.id]}
           onClose={() => setSelectedEpic(null)}

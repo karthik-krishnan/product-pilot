@@ -1,11 +1,13 @@
 import type { LLMMessage } from '../services/llm/client'
-import type { ContextCapture, Epic, ClarifyingQuestion, Story } from '../types'
+import type { EnterpriseConfig, Workspace, Epic, ClarifyingQuestion, Story } from '../types'
 import { parseJSON } from '../services/llm/client'
 import { SYSTEM_PROMPT } from './system'
+import { buildContextBlock } from '../utils/contextUtils'
 
 export function buildGenerateStoriesPrompt(
   epic: Epic,
-  context: ContextCapture,
+  enterprise: EnterpriseConfig | null,
+  workspace: Workspace | null,
   questions: ClarifyingQuestion[],
 ): LLMMessage[] {
   const qaBlock = questions.length > 0
@@ -18,11 +20,8 @@ export function buildGenerateStoriesPrompt(
       role: 'user',
       content: `You are a senior product manager breaking down an epic into a complete, production-ready set of user stories for a real engineering team.
 
-DOMAIN CONTEXT:
-${context.domainText || '(none provided)'}
-
-TECHNICAL CONTEXT:
-${context.techText || '(none provided)'}
+CONTEXT:
+${buildContextBlock(enterprise, workspace)}
 
 EPIC:
 Title: ${epic.title}

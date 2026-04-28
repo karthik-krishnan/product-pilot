@@ -1,11 +1,13 @@
 import type { LLMMessage } from '../services/llm/client'
-import type { ContextCapture, ClarifyingQuestion, Epic } from '../types'
+import type { EnterpriseConfig, Workspace, ClarifyingQuestion, Epic } from '../types'
 import { parseJSON } from '../services/llm/client'
 import { SYSTEM_PROMPT } from './system'
+import { buildContextBlock } from '../utils/contextUtils'
 
 export function buildGenerateEpicsPrompt(
   requirements: string,
-  context: ContextCapture,
+  enterprise: EnterpriseConfig | null,
+  workspace: Workspace | null,
   questions: ClarifyingQuestion[],
 ): LLMMessage[] {
   const qaBlock = questions.length > 0
@@ -18,11 +20,8 @@ export function buildGenerateEpicsPrompt(
       role: 'user',
       content: `Generate a comprehensive set of epics from the requirements below. Each epic should represent a coherent business capability.
 
-DOMAIN CONTEXT:
-${context.domainText || '(none provided)'}
-
-TECHNICAL CONTEXT:
-${context.techText || '(none provided)'}
+CONTEXT:
+${buildContextBlock(enterprise, workspace)}
 
 RAW REQUIREMENTS:
 ${requirements}

@@ -6,7 +6,8 @@ import {
   CheckCircle, AlertCircle, Loader2, ShieldCheck, Tag, RefreshCw,
   MessageSquare, FileText, X, Copy, Download, Check as CheckIcon, Upload, Edit3, Save,
 } from 'lucide-react'
-import type { APISettings, ContextCapture, Epic, Story, ClarifyingQuestion, INVESTValidation } from '../types'
+import type { APISettings, EnterpriseConfig, Workspace, Epic, Story, ClarifyingQuestion, INVESTValidation } from '../types'
+import { getAllContextFiles } from '../utils/contextUtils'
 import { ValidationSection } from './StoryValidation'
 import { storyToMarkdown, copyToClipboard, exportStoriesToExcel } from '../utils/export'
 import JiraPushModal from './JiraPushModal'
@@ -20,7 +21,8 @@ interface Props {
   epicId: string
   epics: Epic[]
   settings: APISettings
-  context: ContextCapture
+  enterprise: EnterpriseConfig | null
+  workspace: Workspace | null
   storyValidations: Record<string, INVESTValidation>
   storyAcceptedFixes: Record<string, string[]>
   storyChats: Record<string, ChatMsg[]>
@@ -88,10 +90,11 @@ function EpicHeader({ epic, isLive }: { epic: Epic; isLive: boolean }) {
 
 type ChatMsg = { id: string; role: 'user' | 'assistant'; content: string; options?: string[]; selectedOption?: string }
 
-function DiscoveryChat({ epic, settings, context, onComplete, onDismiss }: {
+function DiscoveryChat({ epic, settings, enterprise, workspace, onComplete, onDismiss }: {
   epic: Epic
   settings: APISettings
-  context: ContextCapture
+  enterprise: EnterpriseConfig | null
+  workspace: Workspace | null
   onComplete: (questions: ClarifyingQuestion[]) => void
   onDismiss: () => void
 }) {
@@ -129,7 +132,7 @@ function DiscoveryChat({ epic, settings, context, onComplete, onDismiss }: {
     addMsg({ role: 'assistant', content: `Let me ask a few focused questions to help define precise stories for **"${epic.title}"**…` })
     try {
       const raw = await callLLM(
-        buildClarifyingQuestionsPrompt(`Epic: ${epic.title}\n${epic.description}`, context, questionCount),
+        buildClarifyingQuestionsPrompt(`Epic: ${epic.title}\n${epic.description}`, enterprise, workspace, questionCount),
         settings,
         [],
         'epic-clarifying-questions',
@@ -340,11 +343,12 @@ function StoryContent({ story }: { story: Story }) {
 
 // ─── StoryDiscussPanel ────────────────────────────────────────────────────────
 
-function StoryDiscussPanel({ story, epic, settings, context, initialMessages, onMessagesChange }: {
+function StoryDiscussPanel({ story, epic, settings, enterprise, workspace, initialMessages, onMessagesChange }: {
   story: Story
   epic: Epic
   settings: APISettings
-  context: ContextCapture
+  enterprise: EnterpriseConfig | null
+  workspace: Workspace | null
   initialMessages?: ChatMsg[]
   onMessagesChange?: (msgs: ChatMsg[]) => void
 }) {
@@ -367,7 +371,7 @@ function StoryDiscussPanel({ story, epic, settings, context, initialMessages, on
     setMessages(prev => [...prev, { id: Date.now().toString(), role: 'user', content: text }])
     setTyping(true)
     try {
-      const llmMessages = buildStoryChatMessages(story, epic, context, messages, text)
+      const llmMessages = buildStoryChatMessages(story, epic, enterprise, workspace, messages, text)
       const response = await callLLM(llmMessages, settings, [], 'story-chat')
       setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: 'assistant', content: response }])
     } catch {
@@ -566,11 +570,12 @@ function CopyMarkdownButton({ story }: { story: Story }) {
   )
 }
 
-function StoryDetailModal({ story, epic, settings, context, validation, acceptedKeys, onValidated, onFixAccepted, onStoryChange, onAddStory, onClose, initialTab = 'view', initialDiscussMessages, onDiscussMessagesChange }: {
+function StoryDetailModal({ story, epic, settings, enterprise, workspace, validation, acceptedKeys, onValidated, onFixAccepted, onStoryChange, onAddStory, onClose, initialTab = 'view', initialDiscussMessages, onDiscussMessagesChange }: {
   story: Story
   epic: Epic
   settings: APISettings
-  context: ContextCapture
+  enterprise: EnterpriseConfig | null
+  workspace: Workspace | null
   validation: INVESTValidation | null
   acceptedKeys: Set<string>
   onValidated: (v: INVESTValidation) => void
@@ -725,7 +730,8 @@ function StoryDetailModal({ story, epic, settings, context, validation, accepted
                 story={story}
                 epic={epic}
                 settings={settings}
-                context={context}
+                enterprise={enterprise}
+                workspace={workspace}
                 initialMessages={initialDiscussMessages}
                 onMessagesChange={onDiscussMessagesChange}
               />
@@ -798,7 +804,7 @@ function StoryDetailModal({ story, epic, settings, context, validation, accepted
 
 type Phase = 'input' | 'discovering' | 'generating' | 'done'
 
-export default function StoryBreakdown({ epicId, epics, settings, context, storyValidations, storyAcceptedFixes, storyChats, onSelectEpic, onStoriesGenerated, onStoryValidated, onFixAccepted, onAddStory, onStoryChatUpdate }: Props) {
+export default function StoryBreakdown({ epicId, epics, settings, enterprise, workspace, storyValidations, storyAcceptedFixes, storyChats, onSelectEpic, onStoriesGenerated, onStoryValidated, onFixAccepted, onAddStory, onStoryChatUpdate }: Props) {
   const epic = epics.find(e => e.id === epicId) || epics[0]
 
   // Restore persisted stories from App state so navigation away/back keeps them
@@ -860,9 +866,9 @@ export default function StoryBreakdown({ epicId, epics, settings, context, story
     setError(null)
     try {
       const raw = await callLLM(
-        buildGenerateStoriesPrompt(epic, context, questions),
+        buildGenerateStoriesPrompt(epic, enterprise, workspace, questions),
         settings,
-        [...context.domainFiles, ...context.techFiles],
+        getAllContextFiles(enterprise, workspace),
         'generate-stories',
       )
       // Guard: ignore result if user has switched to a different epic
@@ -959,7 +965,8 @@ export default function StoryBreakdown({ epicId, epics, settings, context, story
         <DiscoveryChat
           epic={epic}
           settings={settings}
-          context={context}
+          enterprise={enterprise}
+          workspace={workspace}
           onComplete={generateStories}
           onDismiss={() => setPhase('input')}
         />
@@ -1076,7 +1083,8 @@ export default function StoryBreakdown({ epicId, epics, settings, context, story
           story={selectedStory.story}
           epic={epic}
           settings={settings}
-          context={context}
+          enterprise={enterprise}
+          workspace={workspace}
           initialTab={selectedStory.tab}
           validation={storyValidations[selectedStory.story.id] ?? null}
           acceptedKeys={new Set(storyAcceptedFixes[selectedStory.story.id] ?? [])}

@@ -1,6 +1,9 @@
 /**
- * Tests that domain/tech context (text and files) is correctly threaded through
+ * Tests that domain/tech context is correctly threaded through
  * prompt builders and the callLLM factory so it reaches the LLM.
+ *
+ * The prompt builders now accept (enterprise, workspace) instead of a flat
+ * ContextCapture object. Tests use makeWorkspace() helpers to supply context.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { buildClarifyingQuestionsPrompt } from '../../prompts/clarifyingQuestions'
@@ -8,7 +11,7 @@ import { buildGenerateEpicsPrompt } from '../../prompts/generateEpics'
 import { buildGenerateStoriesPrompt } from '../../prompts/generateStories'
 import { callLLM } from '../../services/llm/client'
 import { injectFilesIntoMessages } from '../../services/llm/shared'
-import type { ContextCapture, Epic, ClarifyingQuestion, UploadedFile } from '../../types'
+import type { Epic, ClarifyingQuestion, Workspace, EnterpriseConfig, UploadedFile } from '../../types'
 import type { LLMMessage } from '../../services/llm/shared'
 
 // ─── Mock the provider so no real HTTP calls are made ─────────────────────────
@@ -19,7 +22,18 @@ vi.mock('../../services/llm/providers/anthropic', () => ({
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const makeContext = (overrides: Partial<ContextCapture> = {}): ContextCapture => ({
+const makeWorkspace = (overrides: Partial<Workspace> = {}): Workspace => ({
+  id: 'ws-test',
+  name: 'Test Team',
+  domainText: '',
+  domainFiles: [],
+  techText: '',
+  techFiles: [],
+  ...overrides,
+})
+
+const makeEnterprise = (overrides: Partial<EnterpriseConfig> = {}): EnterpriseConfig => ({
+  name: 'Test Corp',
   domainText: '',
   domainFiles: [],
   techText: '',
@@ -50,28 +64,43 @@ const getUserMessage = (messages: LLMMessage[]) => messages.find(m => m.role ===
 // ─── buildClarifyingQuestionsPrompt — context injection ───────────────────────
 
 describe('buildClarifyingQuestionsPrompt — context injection', () => {
-  it('embeds domainText in the user message', () => {
-    const ctx = makeContext({ domainText: 'B2C retail platform with SAP backend' })
-    const content = getUserMessage(buildClarifyingQuestionsPrompt('Build a checkout', ctx, 2))
+  it('embeds workspace domainText in the user message', () => {
+    const ws = makeWorkspace({ domainText: 'B2C retail platform with SAP backend' })
+    const content = getUserMessage(buildClarifyingQuestionsPrompt('Build a checkout', null, ws, 2))
     expect(content).toContain('B2C retail platform with SAP backend')
   })
 
-  it('embeds techText in the user message', () => {
-    const ctx = makeContext({ techText: 'React frontend, Node.js API, PostgreSQL' })
-    const content = getUserMessage(buildClarifyingQuestionsPrompt('Build a checkout', ctx, 2))
+  it('embeds workspace techText in the user message', () => {
+    const ws = makeWorkspace({ techText: 'React frontend, Node.js API, PostgreSQL' })
+    const content = getUserMessage(buildClarifyingQuestionsPrompt('Build a checkout', null, ws, 2))
     expect(content).toContain('React frontend, Node.js API, PostgreSQL')
   })
 
-  it('shows (none provided) placeholder when context is empty', () => {
-    const content = getUserMessage(buildClarifyingQuestionsPrompt('Requirements', makeContext(), 1))
-    expect(content).toContain('(none provided)')
+  it('shows (no context provided) placeholder when both are null', () => {
+    const content = getUserMessage(buildClarifyingQuestionsPrompt('Requirements', null, null, 1))
+    expect(content).toContain('(no context provided)')
   })
 
-  it('includes both domain and tech context in the same message', () => {
-    const ctx = makeContext({ domainText: 'Healthcare SaaS', techText: 'AWS Lambda, DynamoDB' })
-    const content = getUserMessage(buildClarifyingQuestionsPrompt('Build it', ctx, 3))
+  it('includes both enterprise and workspace context in the same message', () => {
+    const ent = makeEnterprise({ domainText: 'Healthcare SaaS' })
+    const ws  = makeWorkspace({ techText: 'AWS Lambda, DynamoDB' })
+    const content = getUserMessage(buildClarifyingQuestionsPrompt('Build it', ent, ws, 3))
     expect(content).toContain('Healthcare SaaS')
     expect(content).toContain('AWS Lambda, DynamoDB')
+  })
+
+  it('labels enterprise context with company name', () => {
+    const ent = makeEnterprise({ name: 'MegaCorp', domainText: 'Enterprise retail' })
+    const content = getUserMessage(buildClarifyingQuestionsPrompt('Build it', ent, null, 1))
+    expect(content).toContain('MegaCorp')
+    expect(content).toContain('Enterprise retail')
+  })
+
+  it('labels workspace context with team name', () => {
+    const ws = makeWorkspace({ name: 'Mobile Team', techText: 'React Native' })
+    const content = getUserMessage(buildClarifyingQuestionsPrompt('Build it', null, ws, 1))
+    expect(content).toContain('Mobile Team')
+    expect(content).toContain('React Native')
   })
 })
 
@@ -80,34 +109,42 @@ describe('buildClarifyingQuestionsPrompt — context injection', () => {
 describe('buildGenerateEpicsPrompt — context injection', () => {
   const questions = [answeredQuestion('Who are users?', 'External customers')]
 
-  it('embeds domainText in the user message', () => {
-    const ctx = makeContext({ domainText: 'Logistics SaaS with fleet management' })
-    const content = getUserMessage(buildGenerateEpicsPrompt('Build a TMS', ctx, questions))
+  it('embeds workspace domainText in the user message', () => {
+    const ws = makeWorkspace({ domainText: 'Logistics SaaS with fleet management' })
+    const content = getUserMessage(buildGenerateEpicsPrompt('Build a TMS', null, ws, questions))
     expect(content).toContain('Logistics SaaS with fleet management')
   })
 
-  it('embeds techText in the user message', () => {
-    const ctx = makeContext({ techText: 'Microservices on Kubernetes, Kafka event bus' })
-    const content = getUserMessage(buildGenerateEpicsPrompt('Build a TMS', ctx, questions))
+  it('embeds workspace techText in the user message', () => {
+    const ws = makeWorkspace({ techText: 'Microservices on Kubernetes, Kafka event bus' })
+    const content = getUserMessage(buildGenerateEpicsPrompt('Build a TMS', null, ws, questions))
     expect(content).toContain('Microservices on Kubernetes, Kafka event bus')
   })
 
   it('includes Q&A answers in the user message', () => {
-    const content = getUserMessage(buildGenerateEpicsPrompt('Build a TMS', makeContext(), questions))
+    const content = getUserMessage(buildGenerateEpicsPrompt('Build a TMS', null, null, questions))
     expect(content).toContain('Who are users?')
     expect(content).toContain('External customers')
   })
 
   it('shows no-questions placeholder when questions array is empty', () => {
-    const content = getUserMessage(buildGenerateEpicsPrompt('Build it', makeContext(), []))
+    const content = getUserMessage(buildGenerateEpicsPrompt('Build it', null, null, []))
     expect(content).toContain('no clarifying questions')
   })
 
   it('includes Q&A label even with unanswered questions', () => {
     const unanswered: ClarifyingQuestion = { id: 'q1', question: 'Scale?', options: [] }
-    const content = getUserMessage(buildGenerateEpicsPrompt('Req', makeContext(), [unanswered]))
+    const content = getUserMessage(buildGenerateEpicsPrompt('Req', null, null, [unanswered]))
     expect(content).toContain('Scale?')
     expect(content).toContain('(no answer provided)')
+  })
+
+  it('includes enterprise context when provided alongside workspace', () => {
+    const ent = makeEnterprise({ domainText: 'Global e-commerce company' })
+    const ws  = makeWorkspace({ domainText: 'Search & Discovery team' })
+    const content = getUserMessage(buildGenerateEpicsPrompt('Build search', ent, ws, []))
+    expect(content).toContain('Global e-commerce company')
+    expect(content).toContain('Search & Discovery team')
   })
 })
 
@@ -117,32 +154,32 @@ describe('buildGenerateStoriesPrompt — context injection', () => {
   const epic = makeEpic()
   const questions = [answeredQuestion('Offline support?', 'Online-only is acceptable')]
 
-  it('embeds domainText in the user message', () => {
-    const ctx = makeContext({ domainText: 'E-commerce with loyalty program' })
-    const content = getUserMessage(buildGenerateStoriesPrompt(epic, ctx, []))
+  it('embeds workspace domainText in the user message', () => {
+    const ws = makeWorkspace({ domainText: 'E-commerce with loyalty program' })
+    const content = getUserMessage(buildGenerateStoriesPrompt(epic, null, ws, []))
     expect(content).toContain('E-commerce with loyalty program')
   })
 
-  it('embeds techText in the user message', () => {
-    const ctx = makeContext({ techText: 'Elasticsearch 8, Next.js SSR' })
-    const content = getUserMessage(buildGenerateStoriesPrompt(epic, ctx, []))
+  it('embeds workspace techText in the user message', () => {
+    const ws = makeWorkspace({ techText: 'Elasticsearch 8, Next.js SSR' })
+    const content = getUserMessage(buildGenerateStoriesPrompt(epic, null, ws, []))
     expect(content).toContain('Elasticsearch 8, Next.js SSR')
   })
 
   it('embeds epic title and description in the user message', () => {
-    const content = getUserMessage(buildGenerateStoriesPrompt(epic, makeContext(), []))
+    const content = getUserMessage(buildGenerateStoriesPrompt(epic, null, null, []))
     expect(content).toContain('Product Search')
     expect(content).toContain('Full-text search across catalog')
   })
 
   it('includes discovery Q&A answers', () => {
-    const content = getUserMessage(buildGenerateStoriesPrompt(epic, makeContext(), questions))
+    const content = getUserMessage(buildGenerateStoriesPrompt(epic, null, null, questions))
     expect(content).toContain('Offline support?')
     expect(content).toContain('Online-only is acceptable')
   })
 
   it('shows no-questions placeholder when discovery is skipped', () => {
-    const content = getUserMessage(buildGenerateStoriesPrompt(epic, makeContext(), []))
+    const content = getUserMessage(buildGenerateStoriesPrompt(epic, null, null, []))
     expect(content).toContain('no discovery questions')
   })
 })
@@ -233,7 +270,6 @@ describe('text file content injection into prompt messages', () => {
     }
     const messages: LLMMessage[] = [{ role: 'user', content: 'Generate.' }]
     const result = injectFilesIntoMessages(messages, [pdfFile])
-    // Original message unchanged — PDF is not injected as text
     expect(result[0].content).toBe('Generate.')
     expect(result[0].content).not.toContain('base64encodedcontent')
   })
