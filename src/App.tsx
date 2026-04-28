@@ -3,7 +3,10 @@ import {
   FileText, Layers,
   ChevronRight, Sparkles, Menu, X, Settings as SettingsIcon, Building2, ChevronDown,
 } from 'lucide-react'
-import type { AppStep, AppState, APISettings, EnterpriseConfig, Workspace, ClarifyingQuestion, Epic, Story, INVESTValidation, ChatEntry } from './types'
+import type {
+  AppStep, AppState, APISettings, EnterpriseConfig, Workspace, WorkspaceSession,
+  ClarifyingQuestion, Epic, Story, INVESTValidation, ChatEntry,
+} from './types'
 import Settings from './components/Settings'
 import RequirementsInput from './components/RequirementsInput'
 import EpicsView from './components/EpicsView'
@@ -63,13 +66,23 @@ const DEFAULT_SETTINGS: APISettings = {
   assistanceLevel: 2,
 }
 
+const EMPTY_SESSION: WorkspaceSession = {
+  rawRequirements: '',
+  clarifyingQuestions: [],
+  clarifyingComplete: false,
+  epics: [],
+  storyValidations: {},
+  storyAcceptedFixes: {},
+  epicChats: {},
+  storyChats: {},
+}
+
 function initEnterpriseState(provider: string): {
   enterpriseConfig: EnterpriseConfig | null
   workspaces: Workspace[]
   activeWorkspaceId: string | null
 } {
   if (provider === 'demo') {
-    // Demo mode: always use the pre-built demo data (don't persist)
     return {
       enterpriseConfig: DEMO_ENTERPRISE_CONFIG,
       workspaces: DEMO_WORKSPACES,
@@ -97,6 +110,7 @@ export default function App() {
     enterpriseConfig: initEnterprise,
     workspaces: initWorkspaces,
     activeWorkspaceId: initActiveId,
+    workspaceSessions: {},
     rawRequirements: '',
     clarifyingQuestions: [],
     clarifyingComplete: false,
@@ -108,16 +122,48 @@ export default function App() {
     epicChats: {},
     storyChats: {},
   })
-  const [sidebarOpen, setSidebarOpen]     = useState(false)
-  const [settingsOpen, setSettingsOpen]   = useState(false)
+  const [sidebarOpen, setSidebarOpen]         = useState(false)
+  const [settingsOpen, setSettingsOpen]       = useState(false)
+  const [settingsTab, setSettingsTab]         = useState<'ai' | 'enterprise'>('ai')
   const [workspaceMgrOpen, setWorkspaceMgrOpen] = useState(false)
-  const [epicView, setEpicView]           = useState<'grid' | 'all-stories'>('grid')
+  const [epicView, setEpicView]               = useState<'grid' | 'all-stories'>('grid')
   const [workspacePickerOpen, setWorkspacePickerOpen] = useState(false)
 
   // ─── Derived ─────────────────────────────────────────────────────────────────
 
   const activeWorkspace = state.workspaces.find(w => w.id === state.activeWorkspaceId) ?? null
   const isDemo = state.settings.provider === 'demo'
+
+  // ─── Helpers — snapshot & restore session ─────────────────────────────────────
+
+  function snapshotSession(s: AppState): WorkspaceSession {
+    return {
+      rawRequirements:     s.rawRequirements,
+      clarifyingQuestions: s.clarifyingQuestions,
+      clarifyingComplete:  s.clarifyingComplete,
+      epics:               s.epics,
+      storyValidations:    s.storyValidations,
+      storyAcceptedFixes:  s.storyAcceptedFixes,
+      epicChats:           s.epicChats,
+      storyChats:          s.storyChats,
+    }
+  }
+
+  function applySession(s: AppState, session: WorkspaceSession): AppState {
+    return {
+      ...s,
+      rawRequirements:     session.rawRequirements,
+      clarifyingQuestions: session.clarifyingQuestions,
+      clarifyingComplete:  session.clarifyingComplete,
+      epics:               session.epics,
+      selectedEpicId:      null,
+      storyValidations:    session.storyValidations,
+      storyAcceptedFixes:  session.storyAcceptedFixes,
+      epicChats:           session.epicChats,
+      storyChats:          session.storyChats,
+      currentStep:         session.epics.length > 0 ? 'epics' : 'requirements',
+    }
+  }
 
   // ─── Navigation ──────────────────────────────────────────────────────────────
 
@@ -146,19 +192,27 @@ export default function App() {
 
   // ─── Settings ────────────────────────────────────────────────────────────────
 
-  const handleSettingsSave = (settings: APISettings) => {
-    try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)) } catch { /* ignore */ }
-    // Re-initialise enterprise state when provider changes (demo ↔ real)
-    const { enterpriseConfig, workspaces, activeWorkspaceId } = initEnterpriseState(settings.provider)
-    setState(p => ({ ...p, settings, enterpriseConfig, workspaces, activeWorkspaceId }))
+  const handleSettingsSave = (newSettings: APISettings, enterprise: EnterpriseConfig) => {
+    try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(newSettings)) } catch { /* ignore */ }
+    if (!isDemo) saveEnterpriseConfig(enterprise)
+    // Re-init enterprise state when provider changes (demo ↔ real)
+    const { enterpriseConfig, workspaces, activeWorkspaceId } = initEnterpriseState(newSettings.provider)
+    setState(p => ({ ...p, settings: newSettings, enterpriseConfig, workspaces, activeWorkspaceId }))
   }
 
-  // ─── Enterprise + Workspace ──────────────────────────────────────────────────
+  const openSettings = (tab: 'ai' | 'enterprise' = 'ai') => {
+    setSettingsTab(tab)
+    setSettingsOpen(true)
+  }
+
+  // ─── Enterprise ───────────────────────────────────────────────────────────────
 
   const handleEnterpriseChange = (config: EnterpriseConfig) => {
     if (!isDemo) saveEnterpriseConfig(config)
     setState(p => ({ ...p, enterpriseConfig: config }))
   }
+
+  // ─── Workspace ────────────────────────────────────────────────────────────────
 
   const handleWorkspacesChange = (workspaces: Workspace[]) => {
     if (!isDemo) saveWorkspaces(workspaces)
@@ -167,21 +221,21 @@ export default function App() {
 
   const handleActiveWorkspaceChange = (id: string) => {
     if (!isDemo) saveActiveWorkspaceId(id)
-    // Switching workspace resets the current session
-    setState(p => ({
-      ...p,
-      activeWorkspaceId: id,
-      rawRequirements: '',
-      clarifyingQuestions: [],
-      clarifyingComplete: false,
-      epics: [],
-      selectedEpicId: null,
-      storyValidations: {},
-      storyAcceptedFixes: {},
-      epicChats: {},
-      storyChats: {},
-      currentStep: 'requirements',
-    }))
+    setState(p => {
+      // 1. Save current session keyed by current workspace id
+      const currentId = p.activeWorkspaceId
+      const savedSessions = currentId
+        ? { ...p.workspaceSessions, [currentId]: snapshotSession(p) }
+        : p.workspaceSessions
+
+      // 2. Restore session for the new workspace (or start fresh)
+      const restoredSession = savedSessions[id] ?? EMPTY_SESSION
+
+      return applySession(
+        { ...p, activeWorkspaceId: id, workspaceSessions: savedSessions },
+        restoredSession,
+      )
+    })
     setEpicView('grid')
     setWorkspacePickerOpen(false)
   }
@@ -197,9 +251,7 @@ export default function App() {
     setEpicView('grid')
   }
 
-  const handleEpicsChange = (epics: Epic[]) => {
-    setState(p => ({ ...p, epics }))
-  }
+  const handleEpicsChange = (epics: Epic[]) => setState(p => ({ ...p, epics }))
 
   const handleBreakIntoStories = (epicId: string) => {
     setState(p => ({ ...p, selectedEpicId: epicId, currentStep: 'epics' }))
@@ -230,12 +282,9 @@ export default function App() {
       },
     }))
 
-  // ─── Create quick workspace (no-context setup) ───────────────────────────────
-
   const handleQuickCreateWorkspace = () => {
     const ws: Workspace = {
-      id: makeWorkspaceId(),
-      name: 'My Team',
+      id: makeWorkspaceId(), name: 'My Team',
       domainText: '', domainFiles: [], techText: '', techFiles: [],
     }
     const updated = [...state.workspaces, ws]
@@ -307,9 +356,7 @@ export default function App() {
                     <button
                       key={ws.id}
                       onClick={() => handleActiveWorkspaceChange(ws.id)}
-                      className={`w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-50 transition-colors ${
-                        ws.id === state.activeWorkspaceId ? 'bg-brand-50' : ''
-                      }`}
+                      className={`w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-50 transition-colors ${ws.id === state.activeWorkspaceId ? 'bg-brand-50' : ''}`}
                     >
                       <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${ws.id === state.activeWorkspaceId ? 'bg-brand-500' : 'bg-gray-200'}`} />
                       <span className={`text-xs font-medium truncate ${ws.id === state.activeWorkspaceId ? 'text-brand-700' : 'text-gray-700'}`}>{ws.name}</span>
@@ -374,7 +421,7 @@ export default function App() {
             <p className="text-xs font-medium text-gray-600 group-hover:text-gray-800 transition-colors">Workspaces</p>
           </button>
           <button
-            onClick={() => setSettingsOpen(true)}
+            onClick={() => openSettings('ai')}
             className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors group"
           >
             <div className="w-6 h-6 rounded-md bg-gray-100 group-hover:bg-gray-200 flex items-center justify-center shrink-0 transition-colors">
@@ -404,7 +451,7 @@ export default function App() {
             </div>
             <span className="text-sm font-semibold text-gray-800">ProductPilot</span>
           </div>
-          <button onClick={() => setSettingsOpen(true)} className="ml-auto text-gray-400 hover:text-gray-600">
+          <button onClick={() => openSettings('ai')} className="ml-auto text-gray-400 hover:text-gray-600">
             <SettingsIcon className="w-4 h-4" />
           </button>
         </div>
@@ -413,7 +460,7 @@ export default function App() {
         {!activeWorkspace && (
           <div className="mx-4 mt-6 flex items-center gap-4 bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4">
             <div className="w-9 h-9 rounded-lg bg-amber-100 flex items-center justify-center shrink-0">
-              <Layers className="w-4.5 h-4.5 text-amber-600" />
+              <Layers className="w-4 h-4 text-amber-600" />
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-amber-900">No workspace selected</p>
@@ -441,7 +488,6 @@ export default function App() {
           )}
           {state.currentStep === 'epics' && !state.selectedEpicId && (
             <>
-              {/* View toggle */}
               <div className="flex items-center gap-1 px-6 pt-6 pb-0">
                 <div className="flex rounded-lg border border-gray-200 bg-gray-100 p-0.5 text-xs font-medium">
                   {(['grid', 'all-stories'] as const).map(v => (
@@ -511,6 +557,8 @@ export default function App() {
       {settingsOpen && (
         <Settings
           settings={state.settings}
+          enterpriseConfig={state.enterpriseConfig}
+          initialTab={settingsTab}
           onSave={handleSettingsSave}
           onClose={() => setSettingsOpen(false)}
         />
@@ -519,13 +567,12 @@ export default function App() {
       {/* Workspace manager modal */}
       {workspaceMgrOpen && (
         <WorkspaceManager
-          enterpriseConfig={state.enterpriseConfig}
           workspaces={state.workspaces}
           activeWorkspaceId={state.activeWorkspaceId}
           settings={state.settings}
-          onEnterpriseChange={handleEnterpriseChange}
           onWorkspacesChange={handleWorkspacesChange}
           onActiveWorkspaceChange={handleActiveWorkspaceChange}
+          onOpenEnterpriseSettings={() => { setWorkspaceMgrOpen(false); openSettings('enterprise') }}
           onClose={() => setWorkspaceMgrOpen(false)}
         />
       )}
