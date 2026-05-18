@@ -76,33 +76,45 @@ async function callFoundryOpenAI(
   jsonMode: boolean,
 ): Promise<string> {
   const base = s.azureFoundryEndpoint.replace(/\/$/, '')
-
-  // Azure AI Foundry exposes OpenAI models under {endpoint}/openai/v1
-  const url = `${base}/openai/v1/chat/completions`
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${s.azureFoundryKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: s.azureFoundryModel,
-      messages: injectFilesIntoMessages(messages, files),
-      ...(jsonMode ? { response_format: { type: 'json_object' } } : {}),
-      max_completion_tokens: 4096,
-    }),
+  const body = JSON.stringify({
+    model: s.azureFoundryModel,
+    messages: injectFilesIntoMessages(messages, files),
+    ...(jsonMode ? { response_format: { type: 'json_object' } } : {}),
+    max_completion_tokens: 4096,
   })
-  if (!res.ok) throw new LLMError('Azure AI Foundry (OpenAI)', res.status, await res.text())
-  const data = await res.json()
-  return data.choices[0].message.content
+
+  if (base.includes('openai.azure.com')) {
+    // openai.azure.com → OpenAI-compatible endpoint, Bearer auth (mirrors datagenia OpenAI SDK)
+    const url = `${base}/openai/v1/chat/completions`
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${s.azureFoundryKey}`, 'Content-Type': 'application/json' },
+      body,
+    })
+    if (!res.ok) throw new LLMError('Azure AI Foundry (OpenAI)', res.status, await res.text())
+    const data = await res.json()
+    return data.choices[0].message.content
+  } else {
+    // services.ai.azure.com → Azure AI Inference endpoint, api-key auth (mirrors datagenia ChatCompletionsClient)
+    const url = `${base}/models/chat/completions`
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'api-key': s.azureFoundryKey, 'Content-Type': 'application/json' },
+      body,
+    })
+    if (!res.ok) throw new LLMError('Azure AI Foundry (AI Inference)', res.status, await res.text())
+    const data = await res.json()
+    return data.choices[0].message.content
+  }
 }
 
 // ─── Public entry point ───────────────────────────────────────────────────────
 
 /**
- * Route to the correct Azure AI Foundry sub-endpoint based on the model name:
- *   - claude-*  → Anthropic Messages API  ({endpoint}/anthropic/v1/messages)
- *   - everything else → OpenAI-compatible  ({endpoint}/openai/v1/chat/completions)
+ * Route to the correct Azure AI Foundry sub-endpoint (mirrors datagenia AzureFoundryProvider):
+ *   - claude-*               → {endpoint}/anthropic/v1/messages        (x-api-key auth)
+ *   - openai.azure.com + GPT → {endpoint}/openai/v1/chat/completions   (Bearer auth)
+ *   - services.ai.azure.com  → {endpoint}/models/chat/completions      (api-key auth)
  */
 export async function callAzureFoundry(
   messages: LLMMessage[],
