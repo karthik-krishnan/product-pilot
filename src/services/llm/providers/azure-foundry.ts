@@ -43,13 +43,13 @@ async function callFoundryClaude(
     return m
   })
 
-  // Azure AI Foundry routes Anthropic models under {endpoint}/anthropic/v1/messages
-  // Auth: Bearer token (not 'api-key' which is Azure OpenAI-only)
+  // AnthropicFoundry SDK (datagenia) uses base_url={base}/anthropic and sends
+  // x-api-key (standard Anthropic auth), so replicate that exactly here.
   const url = `${base}/anthropic/v1/messages`
   const res = await fetch(url, {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${s.azureFoundryKey}`,
+      'x-api-key': s.azureFoundryKey,
       'anthropic-version': '2023-06-01',
       'Content-Type': 'application/json',
     },
@@ -82,7 +82,7 @@ async function callFoundryOpenAI(
   const res = await fetch(url, {
     method: 'POST',
     headers: {
-      'api-key': s.azureFoundryKey,
+      'Authorization': `Bearer ${s.azureFoundryKey}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
