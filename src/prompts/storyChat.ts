@@ -1,17 +1,8 @@
 import type { LLMMessage } from '../services/llm/client'
 import type { Epic, Story, EnterpriseConfig, Workspace, ChatEntry } from '../types'
+import { storyChatSystemPrompt, storyChatContextTemplate } from './templates/storyChat'
 import { buildContextBlock } from '../utils/contextUtils'
 
-/**
- * Builds the full message array for a multi-turn story discussion.
- *
- * Context injected:
- *  - Enterprise + workspace context (company-wide then team-specific)
- *  - Parent epic (for scope anchoring)
- *  - The full story (all fields: ACs, scope, assumptions, cross-functional needs)
- *  - Conversation history so far
- *  - The new user message
- */
 export function buildStoryChatMessages(
   story: Story,
   epic: Epic,
@@ -24,51 +15,33 @@ export function buildStoryChatMessages(
     ? story.acceptanceCriteria.map((ac, i) => `  ${i + 1}. ${ac}`).join('\n')
     : '  (none defined)'
 
-  const systemPrompt = `RESPONSE FORMAT: Always write in plain English prose — complete sentences and short paragraphs. Never use JSON, code blocks, markdown headers, or any structured data format. If you want to list items, write them as natural sentences ("First… Second… Also…"), not as arrays or objects.
+  const list = (items: string[], fallback: string) =>
+    items.length > 0 ? items.join('; ') : fallback
 
-You are a product advisor helping a team refine a specific user story.
-
-Your job is to help the team sharpen this story so it is ready for sprint planning. Keep all responses anchored to the story and its parent epic — do not give generic agile advice.
-
-Focus areas:
-- Whether acceptance criteria are specific, measurable, and testable (flag vague language)
-- Scope gaps: things a user would reasonably expect that aren't captured in the story
-- Edge cases and failure states within this story's scope that need an explicit AC or a separate story
-- Whether the story is correctly sized — flag anything that feels like more than 8 points
-- Assumptions that should be documented because they could change scope if wrong
-- Cross-functional needs (analytics events, security review, design handoff) that haven't been called out
-
-Do NOT give generic process advice or talk about other stories. Be specific and reference the story fields directly.`
-
-  const storyBlock = `PARENT EPIC:
-${epic.title} — ${epic.description}
-
-STORY BEING DISCUSSED:
-Title: ${story.title}
-User story: As a ${story.asA}, I want to ${story.iWantTo}, so that ${story.soThat}.
-Priority: ${story.priority} | Story Points: ${story.storyPoints ?? 'unestimated'}
-
-Acceptance Criteria:
-${acList}
-
-In Scope: ${story.inScope.length > 0 ? story.inScope.join('; ') : '(not specified)'}
-Out of Scope: ${story.outOfScope.length > 0 ? story.outOfScope.join('; ') : '(not specified)'}
-Assumptions: ${story.assumptions.length > 0 ? story.assumptions.join('; ') : '(none)'}
-Cross-functional Needs: ${story.crossFunctionalNeeds.length > 0 ? story.crossFunctionalNeeds.join('; ') : '(none)'}
-
-CONTEXT:
-${buildContextBlock(enterprise, workspace)}
-
-Respond in plain English prose only. No JSON, no code blocks, no structured data.`
-
-  const messages: LLMMessage[] = [
-    { role: 'system', content: systemPrompt },
-    { role: 'user',   content: storyBlock },
+  return [
+    { role: 'system', content: storyChatSystemPrompt },
+    {
+      role: 'user',
+      content: storyChatContextTemplate({
+        epicTitle: epic.title,
+        epicDescription: epic.description,
+        storyTitle: story.title,
+        asA: story.asA,
+        iWantTo: story.iWantTo,
+        soThat: story.soThat,
+        priority: story.priority,
+        storyPoints: story.storyPoints != null ? String(story.storyPoints) : 'unestimated',
+        acceptanceCriteria: acList,
+        inScope: list(story.inScope, '(not specified)'),
+        outOfScope: list(story.outOfScope, '(not specified)'),
+        assumptions: list(story.assumptions, '(none)'),
+        crossFunctionalNeeds: list(story.crossFunctionalNeeds, '(none)'),
+        contextBlock: buildContextBlock(enterprise, workspace),
+      }),
+    },
     ...history
       .filter(m => m.role === 'user' || m.role === 'assistant')
       .map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })),
     { role: 'user', content: userMessage },
   ]
-
-  return messages
 }
