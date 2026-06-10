@@ -31,6 +31,7 @@ const demoSettings: APISettings = {
   provider: 'demo',
   anthropicKey: '', openaiKey: '', openaiModel: '',
   azureKey: '', azureEndpoint: '', azureDeployment: '',
+  azureFoundryEndpoint: '', azureFoundryKey: '', azureFoundryModel: '',
   googleKey: '', googleModel: '',
   ollamaEndpoint: '', ollamaModel: '',
   assistanceLevel: 1,

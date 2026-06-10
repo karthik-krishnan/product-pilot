@@ -198,6 +198,7 @@ describe('context files flow through callLLM', () => {
       provider: 'anthropic' as const,
       anthropicKey: 'sk-test', openaiKey: '', openaiModel: 'gpt-4o',
       azureKey: '', azureEndpoint: '', azureDeployment: '',
+      azureFoundryEndpoint: '', azureFoundryKey: '', azureFoundryModel: '',
       googleKey: '', googleModel: 'gemini-1.5-pro',
       ollamaEndpoint: '', ollamaModel: '', assistanceLevel: 2 as const,
     }
@@ -218,6 +219,7 @@ describe('context files flow through callLLM', () => {
       provider: 'anthropic' as const,
       anthropicKey: 'sk-test', openaiKey: '', openaiModel: 'gpt-4o',
       azureKey: '', azureEndpoint: '', azureDeployment: '',
+      azureFoundryEndpoint: '', azureFoundryKey: '', azureFoundryModel: '',
       googleKey: '', googleModel: 'gemini-1.5-pro',
       ollamaEndpoint: '', ollamaModel: '', assistanceLevel: 2 as const,
     }

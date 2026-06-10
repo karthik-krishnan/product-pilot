@@ -66,6 +66,7 @@ const settings: APISettings = {
   provider: 'demo',
   anthropicKey: '', openaiKey: '', openaiModel: 'gpt-4o',
   azureKey: '', azureEndpoint: '', azureDeployment: '',
+  azureFoundryEndpoint: '', azureFoundryKey: '', azureFoundryModel: '',
   googleKey: '', googleModel: 'gemini-1.5-pro',
   ollamaEndpoint: '', ollamaModel: '',
   assistanceLevel: 2,
